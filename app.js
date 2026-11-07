@@ -87,6 +87,7 @@ function sourceCategory(sourceCode) {
 }
 
 function sourceCodeFromFilename(filename) {
+  if(/R2\.(zip|dbf)$/i.test(filename))return 'WBR2';
   const stem = filename.replace(/\.[^.]+$/, "").toUpperCase();
   const codes = Object.keys(SOURCES).sort((left, right) => right.length - left.length);
   return codes.find((code) => new RegExp(`(^|[^A-Z0-9])${code}($|[^A-Z0-9])`).test(stem)) || null;
@@ -270,6 +271,16 @@ function readDbf(buffer) {
 async function readStatement(file, sourceCode) {
   if (file.size > MAX_FILE_SIZE) throw new Error("The file is larger than 10 MB. Export a smaller statement and try again.");
   const extension = file.name.split(".").pop().toLowerCase();
+  if(extension==='zip'){
+    const passwordField=document.getElementById('zip-password');
+    let extracted;
+    try{extracted=await RTAZip.extract(file,passwordField.value,sourceCode);}finally{passwordField.value='';}
+    const data=await readStatement(extracted,sourceCode);
+    // Validate the exact DBF layout before presenting a preview or sending any data.
+    RTA.merge(datasets,data,sourceCode);
+    if(!window.confirm(`Ready to import ${sourceCode} report?\n\nArchive: ${file.name}\nExtracted file: ${extracted.name}\nRows: ${data.records.length}\nColumns: ${data.headers.join(', ')}\n\nIdentical rows will be skipped and existing history preserved. Save to your shared workspace?`))throw new Error('Import cancelled. Existing data was preserved.');
+    return {...data,filename:file.name+' / '+extracted.name};
+  }
   let table;
   if (extension === "dbf") {
     table = readDbf(await file.arrayBuffer());
@@ -285,7 +296,7 @@ async function readStatement(file, sourceCode) {
     const rows = parseDelimited(text, detectDelimiter(text));
     table = extractTable(rows, sourceCode);
   } else {
-    throw new Error("Choose a DBF, CSV, XLS, or XLSX file.");
+    throw new Error("Choose a ZIP, DBF, CSV, XLS, or XLSX file.");
   }
   return { ...table, filename: file.name, importedAt: new Date().toISOString(), sourceCode, category: sourceCategory(sourceCode) };
 }
@@ -537,13 +548,13 @@ function renderEmployeeDashboard() {
     ? `100 percent of holdings allocated across ${allocations.length} schemes, total ${formatCurrency(total)}`
     : "No holdings allocation data");
   if (!allocations.length || total <= 0) {
-    chart.style.background = "#edf1ed";
+    chart.style.background = "#edf1fa";
     chart.setAttribute("aria-label", "No holdings allocation data");
     legend.innerHTML = `<p class="empty-state">Scheme allocation will appear after a holdings file is imported.</p>`;
     return;
   }
 
-  const colors = ["#4d8c6c", "#62b9c1", "#e7a767", "#7d8ed0", "#98b77a"];
+  const colors = ["#123d83", "#d3a637", "#4b79ba", "#e9cd82", "#08285e"];
   let end = 0;
   const segments = allocations.map((item, index) => {
     const start = end;
@@ -718,7 +729,8 @@ bulkInput.addEventListener("change", async () => {
 fileInput.addEventListener("change", async () => {
   const file = fileInput.files[0];
   if (!file) return;
-  const sourceCode = importType.value;
+  const sourceCode = /R2\.(zip|dbf)$/i.test(file.name) ? 'WBR2' : importType.value;
+  importType.value = sourceCode;
   const category = SOURCES[sourceCode].category;
   setImportStatus(`Reading ${file.name} as ${sourceCode} (${SOURCES[sourceCode].label})…`);
   try {
