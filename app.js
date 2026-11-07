@@ -2,12 +2,15 @@ const PAGE_SIZE = 10;
 const MAX_FILE_SIZE = 10 * 1024 * 1024;
 const SOURCES = {};
 for (const [category, codes] of Object.entries({
-  clients: ['WBR9','MFSD211','MFSD311'],
-  transactions: ['WBR2','WBR2A','MFSD201','MFSD307'],
-  holdings: ['WBR22','MFSD203','MFSD310'],
+  clients: ['EXCEL_CLIENTS','WBR9','MFSD211','MFSD311'],
+  transactions: ['EXCEL_TX','WBR2','WBR2A','MFSD201','MFSD307'],
+  holdings: ['EXCEL_AUM','WBR22','MFSD203','MFSD310'],
   sips: ['WBR49','MFSD243','MFSD313','MFSD230'],
   brokerage: ['WBR6','WBR77','MFSD205','MFSD208']
 })) codes.forEach(code => { SOURCES[code] = { category, label: {clients:'Client master',transactions:'Transactions',holdings:'AUM / holdings',sips:'SIP / STP / SWP',brokerage:'Brokerage'}[category] }; });
+SOURCES.EXCEL_AUM.label='AUM List (combined Excel export)';
+SOURCES.EXCEL_TX.label='Transactions Report (combined Excel export)';
+SOURCES.EXCEL_CLIENTS.label='Excel client master';
 const CATEGORY_LABELS = {
   clients: "Client master",
   holdings: "AUM / holdings",
