@@ -54,12 +54,24 @@
     const m=s.match(/^(\d{1,2})[\/-](\d{1,2})[\/-](\d{4})$/);
     return m ? `${m[3]}-${m[2].padStart(2,'0')}-${m[1].padStart(2,'0')}` : s.slice(0,10);
   }
+  function excelInvestorKey(data,row){
+    if(data.provider!=='Excel')return null;
+    const group=norm(value(data,row,'Investor Group Code')),name=norm(value(data,row,'Investor Name')).replace(/\s+/g,' ');
+    // Group codes may be shared by different family members. Never merge names
+    // merely because the export assigns them the same group code.
+    return group&&name?'folio:'+JSON.stringify(['Excel investor',group,name]):null;
+  }
+  const providerFor=code=>String(code).startsWith('EXCEL_')?'Excel':String(code).startsWith('WBR')?'CAMS':'KFintech';
   function key(data,row) {
     const get=n=>norm(value(data,row,n));
     const base=[data.provider,get('ARN'),get('AMC'),get('Folio Number'),get('Scheme Code') || get('Scheme Name')];
     if (data.category==='clients') return JSON.stringify([data.provider,get('AMC'),get('Folio Number')]);
     if (data.category==='holdings') return JSON.stringify(base);
     const id=get(data.category==='sips'?'Registration ID':'Transaction ID');
+    if(data.category==='transactions' && data.provider==='Excel'){
+      if(id&&!/^0+(?:\.0+)?$/.test(id))return JSON.stringify([...base,id,get('RTA'),date(value(data,row,'Transaction Date')),get('Transaction Type'),get('Transaction Source')]);
+      return JSON.stringify([...base,...data.headers.map((h,i)=>[header(h),norm(row[i])]).sort((a,b)=>a[0].localeCompare(b[0]))]);
+    }
     if(data.category==='transactions' && data.provider==='CAMS'){
       // CAMS transaction numbers can recur for different dates, types, modes and legs.
       // Amount and units are deliberately excluded: financial corrections must conflict.
@@ -78,7 +90,7 @@
     return JSON.stringify([...base,...data.headers.map((h,i)=>[header(h),norm(row[i])]).sort((a,b)=>a[0].localeCompare(b[0]))]);
   }
   function merge(existing,incoming,code) {
-    const data=normalize({...incoming,provider:code.startsWith('WBR')?'CAMS':'KFintech',reportCode:code});
+    const data=normalize({...incoming,provider:providerFor(code),reportCode:code});
     const get=(r,n)=>value(data,r,n);
     data.records.forEach((r,i)=>{
       if(!get(r,'Folio Number')) throw Error(`Row ${i+2}: Folio Number is required.`);
@@ -89,14 +101,24 @@
       if(data.category==='transactions' && !get(r,'Transaction Date')) throw Error(`Row ${i+2}: transaction date is required.`);
     });
     const next={...existing};
-    const matches=Object.keys(next).filter(c=>(c.startsWith('WBR')?'CAMS':'KFintech')===data.provider && next[c].category===data.category);
+    const categoryMatches=Object.keys(next).filter(c=>next[c].category===data.category);
+    const crossSource=categoryMatches.some(c=>(providerFor(c)==='Excel')!==(data.provider==='Excel'));
+    if(crossSource)throw Error('This category already contains '+(data.provider==='Excel'?'CAMS/KFintech mailbacks':'a combined Excel export')+'. Do not mix overlapping source formats. Keep one source format per category to avoid double counting.');
+    const matches=categoryMatches.filter(c=>providerFor(c)===data.provider);
     // AUM is an explicit provider-wide snapshot. Different brokerage report layouts replace
     // the provider's brokerage set: summary and detail feeds must never be added together.
     const prior=matches.map(c=>normalize({...next[c],provider:data.provider}));
-    const snapshot=data.category==='holdings' || (data.category==='brokerage' && prior.some(d=>d.reportCode!==code));
+    const snapshot=code==='EXCEL_TX' || data.category==='holdings' || (data.category==='brokerage' && prior.some(d=>d.reportCode!==code));
     const headers=Array.from(new Set([...prior.flatMap(d=>d.headers),...data.headers]));
     const rebase=d=>d.records.map(r=>headers.map(h=>value(d,r,h)));
     const merged={...data,headers,records:[]};
+    if(code==='EXCEL_TX'){
+      // This platform ledger has no unique leg/lot sequence. Preserve every supplied
+      // detail row; replacing the whole export makes repeat uploads idempotent.
+      merged.records=data.records.map(row=>headers.map(h=>value(data,row,h)));
+      merged.importSummary={duplicates:0,updated:0,snapshot:true,rows:merged.records.length};
+      matches.forEach(c=>delete next[c]);next[code]=merged;return {datasets:next,data:merged};
+    }
     const rows=new Map(),origins=new Map(); let duplicates=0,updated=0;
     if(!snapshot) prior.forEach(d=>rebase(d).forEach(r=>rows.set(key(merged,r),r)));
     rebase(data).forEach((r,index)=>{
@@ -116,7 +138,7 @@
     matches.forEach(c=>delete next[c]); next[code]=merged;
     return {datasets:next,data:merged};
   }
-  root.RTA={normalize,value,key,merge,date,fields};
+  root.RTA={normalize,value,key,merge,date,fields,providerFor,excelInvestorKey};
   if(typeof module!=='undefined') module.exports=root.RTA;
 })(typeof window==='undefined'?global:window);
 
