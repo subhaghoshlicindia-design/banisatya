@@ -4,3 +4,4 @@ tmp/
 .env
 *.sqlite*
 *.log
+*.backup.json

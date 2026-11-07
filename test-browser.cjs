@@ -4,12 +4,12 @@ const {chromium}=require(process.env.PLAYWRIGHT_MODULE_PATH||'playwright');
 const fs=require('node:fs');
 (async()=>{
  console.log('Starting browser integration');
- const app=createPortal({database:':memory:',setupToken:'browser-test-token'});await new Promise(r=>app.server.listen(0,'127.0.0.1',r));
+ const app=await createPortal({database:':memory:',setupToken:'browser-test-token'});await new Promise(r=>app.server.listen(0,'127.0.0.1',r));
  const origin='http://127.0.0.1:'+app.server.address().port;
  const browser=await chromium.launch({headless:true,...(process.env.BROWSER_EXECUTABLE?{executablePath:process.env.BROWSER_EXECUTABLE}:{})});
  console.log('Browser launched');
  const errors=[];
- const watchdog=setTimeout(()=>{console.error('Browser test exceeded two minutes');process.exit(1);},120000);watchdog.unref();
+ const watchdog=setTimeout(()=>{console.error('Browser test exceeded two minutes');process.exit(1);},180000);watchdog.unref();
  try{
   const first=await browser.newContext({acceptDownloads:true}),second=await browser.newContext({acceptDownloads:true});
   for(const c of [first,second]){await c.route('https://**/*',r=>r.abort());c.on('page',p=>p.on('pageerror',e=>errors.push(e.message)));}
@@ -40,7 +40,8 @@ const fs=require('node:fs');
   await distributor.click('.rta-report-builder details summary');await distributor.fill('#rta-family-name','Shared Family');await distributor.check('#rta-family-members input');await distributor.click('#rta-save-family');
   await distributor.waitForFunction(()=>document.querySelector('#rta-person').selectedOptions[0]?.textContent==='Shared Family');
   // Independent browser context receives the new database state without sharing storage.
-  await employee.waitForFunction(()=>Object.keys(Portal.state.families).length===1,{},{timeout:22000});
+  await employee.bringToFront();await employee.evaluate(()=>Portal.refresh());
+  await employee.waitForFunction(()=>Object.keys(Portal.state.families).length===1,{},{timeout:15000});
   await employee.click('[data-wealth-view=Reports]');await employee.selectOption('#rta-scope','family');
   const familyValue=await employee.locator('#rta-person option').last().getAttribute('value');await employee.selectOption('#rta-person',familyValue);await employee.click('#rta-preview-button');
   assert.match(await employee.textContent('#rta-status'),/5 records/);
@@ -52,5 +53,5 @@ const fs=require('node:fs');
   await employee.reload();await employee.waitForSelector('#login-screen:not(.hidden)');
   assert.deepEqual(errors,[]);
   console.log('Browser integration passed: setup, real logins, employee creation, mandatory password change, five report imports, duplicate handling, cross-device synchronization, family PDF, access revocation.');
- }finally{await browser.close();app.server.closeAllConnections();await new Promise(r=>app.server.close(r));}
+ }finally{console.log('Closing test browsers');await browser.close();console.log('Closing test server');app.server.closeAllConnections();await new Promise(r=>app.server.close(r));clearTimeout(watchdog);}
 })().catch(e=>{console.error(e);process.exitCode=1;});

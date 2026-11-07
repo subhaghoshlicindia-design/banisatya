@@ -1,6 +1,6 @@
 # RTA imports and PDF reports
 
-This portal now uses a shared Node/SQLite server with distributor and employee
+This portal now uses a shared Node server with PostgreSQL in production and SQLite locally with distributor and employee
 accounts. See [SERVER-SETUP.md](SERVER-SETUP.md) for first setup, deployment, backups
 and password recovery. Browser session flags are no longer used for authentication.
 

@@ -1,19 +1,15 @@
-# Deploy this repository as a Render Blueprint. A paid service is required for disks.
+# Free web service. Persistent PostgreSQL is provided separately by Neon Free.
 services:
   - type: web
-    name: artha-distributor-portal
+    name: banisatya-free
     runtime: node
     region: singapore
-    plan: starter
+    plan: free
     numInstances: 1
-    buildCommand: npm test
+    buildCommand: npm ci && npm test
     startCommand: node server.cjs
     healthCheckPath: /api/health
     autoDeployTrigger: checksPass
-    disk:
-      name: artha-database
-      mountPath: /var/data
-      sizeGB: 1
     envVars:
       - key: NODE_VERSION
         value: 24.22.1
@@ -21,8 +17,8 @@ services:
         value: production
       - key: HOST
         value: 0.0.0.0
-      - key: DATABASE_PATH
-        value: /var/data/artha/portal.sqlite
+      - key: DATABASE_URL
+        sync: false
       - key: SETUP_TOKEN
         generateValue: true
       # Render supplies RENDER_EXTERNAL_URL. Set PORTAL_ORIGIN separately only

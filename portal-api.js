@@ -24,9 +24,10 @@ Portal.logout=async()=>{try{await Portal.request('/api/logout',{method:'POST',bo
   for(const src of ['rta-core.js','app.js','rta-pdf.js','rta-portal.js','account-ui.js']){
     await new Promise((resolve,reject)=>{const script=document.createElement('script');script.src=src;script.onload=resolve;script.onerror=reject;document.body.append(script);});
   }
-  if(Portal.user&&!Portal.user.mustChangePassword)setInterval(async()=>{
-    if(Portal.busy||document.hidden)return;
-    try{const result=await Portal.request('/api/state');if(Portal.busy)return;if(result.revision>Portal.state.revision){Portal.state=result;window.dispatchEvent(new Event('portal-state'));}}
+  Portal.refresh=async()=>{
+    if(!Portal.user||Portal.user.mustChangePassword||Portal.busy||document.hidden)return;
+    try{const result=await Portal.request('/api/state?afterRevision='+Portal.state.revision);if(Portal.busy)return;if(result.revision>Portal.state.revision){Portal.state=result;window.dispatchEvent(new Event('portal-state'));}}
     catch(e){const banner=document.querySelector('.demo-banner');if(banner)banner.textContent='Shared data could not refresh: '+e.message;}
-  },15000);
+  };
+  if(Portal.user&&!Portal.user.mustChangePassword)setInterval(Portal.refresh,60000);
 })();

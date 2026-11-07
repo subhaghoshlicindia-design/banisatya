@@ -1,17 +1,18 @@
-# Artha distributor portal
+# Banisatya distributor portal
 
-Shared distributor and employee access for CAMS/KFintech report imports and investor
-and family PDF reports. Requires Node.js 24.13 or newer and persistent SQLite storage.
+Shared distributor/employee access for CAMS/KFintech imports and investor/family PDF reports.
 
-- [Local setup and account administration](SERVER-SETUP.md)
-- [Deploy from GitHub to Render](DEPLOY-RENDER.md)
-- [Supported reports and import rules](RTA-IMPORTS.md)
+The default online deployment uses **Render Free + Neon Free PostgreSQL**, without
+an attached disk or a paid database. Free tiers have quotas and may sleep; they are
+not a guarantee of unlimited hosting or permanent pricing.
 
-Run `npm test` before deployment. On Windows, `./Start-Portal.ps1` locates a supported
-Node runtime. In production, deploy the server and frontend together; GitHub Pages
-cannot run the server. Accounts, sessions, investor data and family membership belong
-in the database, never in the GitHub repository.
+- [Free deployment guide](DEPLOY-RENDER.md)
+- [Accounts, backup and recovery](SERVER-SETUP.md)
+- [Import formats and duplicate handling](RTA-IMPORTS.md)
 
-`render.yaml` describes a paid, single-instance Render service in Singapore with a
-1 GB persistent disk. It creates no resources until you deploy it in your Render
-account. Review the service and disk charges in Render before confirming deployment.
+Requires Node.js 24.13+. Run `npm ci` then `npm test`.
+Production requires `DATABASE_URL` (a PostgreSQL secret) and an HTTPS origin.
+Render supplies its HTTPS origin automatically. SQLite remains available locally
+for development when `DATABASE_URL` is absent. Production refuses temporary local storage.
+
+Never put database URLs, reports, real investor records, passwords or backups in GitHub.

@@ -2,9 +2,14 @@ const {test}=require('node:test');
 const assert=require('node:assert/strict');
 const {createPortal}=require('./server.cjs');
 const fs=require('node:fs'),os=require('node:os'),path=require('node:path');
+test('production cannot silently use temporary SQLite storage',async()=>{
+ const {openDatabase}=require('./database.cjs');const saved=process.env.DATABASE_URL;
+ try{delete process.env.DATABASE_URL;await assert.rejects(()=>openDatabase({production:true}),/DATABASE_URL is required/);}
+ finally{if(saved!==undefined)process.env.DATABASE_URL=saved;}
+});
 test('authenticated shared workspace, permissions, duplicate imports, revocation and persistence',async()=>{
  const directory=fs.mkdtempSync(path.join(os.tmpdir(),'artha-test-')),database=path.join(directory,'test.sqlite');
- let app=createPortal({database,setupToken:'test-bootstrap-token'});
+ let app=await createPortal({database,databaseUrl:process.env.TEST_DATABASE_URL,setupToken:'test-bootstrap-token'});
  await new Promise(r=>app.server.listen(0,'127.0.0.1',r));let origin='http://127.0.0.1:'+app.server.address().port;
  async function call(route,{method='GET',body,cookie,csrf,requestOrigin=origin}={}){
   const res=await fetch(origin+route,{method,headers:{Origin:requestOrigin,'Content-Type':'application/json',...(cookie?{Cookie:cookie}:{}),...(csrf?{'X-CSRF-Token':csrf}:{})},body:body===undefined?undefined:JSON.stringify(body)});
@@ -41,6 +46,9 @@ test('authenticated shared workspace, permissions, duplicate imports, revocation
   assert.equal((await call('/api/families',{...employee,method:'PUT',body:{families,revision:2}})).status,403);
   assert.equal((await call('/api/families',{...auth,method:'PUT',body:{families,revision:2}})).status,200);
   assert.equal((await call('/api/state',employee)).json.families['family-test'].name,'Test Family');
+  const racing=await Promise.all([call('/api/imports',{...auth,method:'POST',body:{files,revision:3}}),call('/api/imports',{...auth,method:'POST',body:{files,revision:3}})]);
+  assert.deepEqual(racing.map(r=>r.status).sort(),[200,409]);
+  const unchanged=await call('/api/state?afterRevision=4',employee);assert.equal(unchanged.json.unchanged,true);assert.equal(unchanged.json.datasets,undefined);
   for(const url of ['/data/portal.sqlite','/server.cjs','/.env','/test-server.cjs'])assert.equal((await call(url)).status,404);
   const users=await call('/api/users',auth),id=users.json.users.find(u=>u.role==='employee').id;
   assert.equal((await call('/api/users/'+id,{...auth,method:'PATCH',body:{password:'Reset-employee-123!'}})).status,200);
@@ -50,27 +58,27 @@ test('authenticated shared workspace, permissions, duplicate imports, revocation
   assert.equal((await call('/api/state',{cookie:resetLogin.cookie})).status,403);
   assert.equal((await call('/api/users/'+id,{...auth,method:'PATCH',body:{active:false}})).status,200);
   assert.equal((await call('/api/state',employee)).status,401);
-  await new Promise(r=>app.server.close(r));app=createPortal({database});await new Promise(r=>app.server.listen(0,'127.0.0.1',r));origin='http://127.0.0.1:'+app.server.address().port;
+  await new Promise(r=>app.server.close(r));app=await createPortal({database,databaseUrl:process.env.TEST_DATABASE_URL});await new Promise(r=>app.server.listen(0,'127.0.0.1',r));origin='http://127.0.0.1:'+app.server.address().port;
   login=await call('/api/login',{method:'POST',body:{...admin,role:'distributor'}});assert.equal(login.status,200);
   const persisted=await call('/api/state',{cookie:login.cookie});assert.equal(persisted.json.datasets.WBR2.records.length,1);assert.equal(persisted.json.families['family-test'].name,'Test Family');
   assert.equal((await call('/api/logout',{cookie:login.cookie,csrf:login.json.csrf,method:'POST',body:{}})).status,200);
   assert.equal((await call('/api/state',{cookie:login.cookie})).status,401);
  }finally{await new Promise(r=>app.server.close(r));fs.rmSync(directory,{recursive:true,force:true});}
 });
-test('production requires HTTPS origin',()=>{assert.throws(()=>createPortal({production:true,origin:'http://insecure.example.test',database:':memory:'}),/HTTPS/);});
-test('Render provides the default production origin without a custom domain',()=>{
+test('production requires HTTPS origin',async()=>{await assert.rejects(()=>createPortal({production:true,origin:'http://insecure.example.test',database:':memory:'}),/HTTPS/);});
+test('Render provides the default production origin without a custom domain',async()=>{
  const previous={origin:process.env.PORTAL_ORIGIN,render:process.env.RENDER_EXTERNAL_URL};
  try{
   delete process.env.PORTAL_ORIGIN;process.env.RENDER_EXTERNAL_URL='https://artha-test.onrender.com';
-  const app=createPortal({production:true,database:':memory:'});app.db.close();
+  const app=await createPortal({production:true,database:':memory:'});await app.db.close();
  }finally{
   if(previous.origin===undefined)delete process.env.PORTAL_ORIGIN;else process.env.PORTAL_ORIGIN=previous.origin;
   if(previous.render===undefined)delete process.env.RENDER_EXTERNAL_URL;else process.env.RENDER_EXTERNAL_URL=previous.render;
  }
 });
 test('production origin validation and persistent database readiness',async()=>{
- assert.throws(()=>createPortal({origin:'https://example.test/path',database:':memory:'}),/bare origin/);
- const app=createPortal({production:true,origin:'https://portal.example.test/',database:':memory:',setupToken:'production-test-token'});
+ await assert.rejects(()=>createPortal({origin:'https://example.test/path',database:':memory:'}),/bare origin/);
+ const app=await createPortal({production:true,origin:'https://portal.example.test/',database:':memory:',setupToken:'production-test-token'});
  await new Promise(r=>app.server.listen(0,'127.0.0.1',r));const base='http://127.0.0.1:'+app.server.address().port;
  try{
   const headers={Origin:'https://portal.example.test','Content-Type':'application/json'};
@@ -83,7 +91,7 @@ test('production origin validation and persistent database readiness',async()=>{
  }finally{await new Promise(r=>app.server.close(r));}
 });
 test('login throttling persists and malformed requests fail closed',async()=>{
- const app=createPortal({database:':memory:'});await new Promise(r=>app.server.listen(0,'127.0.0.1',r));const origin='http://127.0.0.1:'+app.server.address().port;
+ const app=await createPortal({database:':memory:'});await new Promise(r=>app.server.listen(0,'127.0.0.1',r));const origin='http://127.0.0.1:'+app.server.address().port;
  try{
   const headers={Origin:origin,'Content-Type':'application/json'};
   assert.equal((await fetch(origin+'/api/login',{method:'POST',headers,body:'null'})).status,400);
