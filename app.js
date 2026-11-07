@@ -729,30 +729,34 @@ bulkInput.addEventListener("change", async () => {
 });
 let pendingUpload=null;
 const uploadPreview=document.getElementById('upload-preview'),uploadSave=document.getElementById('upload-save-server'),uploadRead=document.getElementById('import-selected-file');
-function resetUploadPreview(){pendingUpload=null;uploadSave.disabled=true;uploadPreview.hidden=true;uploadPreview.innerHTML='';}
+function resetUploadPreview(){pendingUpload=null;uploadSave.disabled=!fileInput.files.length;uploadPreview.hidden=true;uploadPreview.innerHTML='';}
 fileInput.addEventListener('change',()=>{
  resetUploadPreview();const file=fileInput.files[0];
  document.getElementById('selected-upload-file').textContent=file?`${file.name} (${(file.size/1024/1024).toFixed(2)} MB)`:'No file selected.';
  if(file&&/R2\.(zip|dbf)$/i.test(file.name))importType.value='WBR2';
- setImportStatus(file?'File selected. Enter its ZIP password if required, then click Preview selected file.':'Choose a report file to begin.');
+ setImportStatus(file?'File selected. Enter the ZIP password if required, then click Upload & save to server. Preview is optional.':'Choose a report file to begin.');
 });
 importType.addEventListener('change',resetUploadPreview);
 document.getElementById('zip-password').addEventListener('input',resetUploadPreview);
-uploadRead.addEventListener('click',async()=>{
+async function prepareUploadPreview(){
  resetUploadPreview();const file=fileInput.files[0];
  if(!file){setImportStatus('Choose a report file first using the file selector above.',true);fileInput.focus();return;}
- uploadRead.disabled=true;fileInput.disabled=true;importType.disabled=true;
+ uploadSave.disabled=true;uploadRead.disabled=true;fileInput.disabled=true;importType.disabled=true;
+ setImportStatus('Reading and validating the report in your browser…');
  try{
   if(activeRole!=='distributor')throw Error('Only distributors can import data.');
   const sourceCode=importType.value,data=await readStatement(file,sourceCode);
   const check=RTA.merge(datasets,data,sourceCode);
   pendingUpload={sourceCode,data};
-  uploadPreview.innerHTML=`<h4>Ready to upload: ${escapeHTML(sourceCode)}</h4><p>${escapeHTML(data.filename)}</p><p>${data.records.length} source rows · ${data.headers.length} columns · ${check.data.importSummary.duplicates} identical duplicates will be skipped.</p><details><summary>Review columns</summary><p>${data.headers.map(escapeHTML).join(', ')}</p></details><p>No data has been saved yet. Click Upload &amp; save to server to make it available for employee reports.</p>`;
+  uploadPreview.innerHTML=`<h4>Ready to upload: ${escapeHTML(sourceCode)}</h4><p>${escapeHTML(data.filename)}</p><p>${data.records.length} source rows · ${data.headers.length} columns · ${check.data.importSummary.duplicates} identical duplicates will be skipped.</p><details><summary>Review columns</summary><p>${data.headers.map(escapeHTML).join(', ')}</p></details><p>Preview only: no data saved yet. Click Upload &amp; save to server to make it available for employee reports.</p>`;
   uploadPreview.hidden=false;uploadSave.disabled=false;setImportStatus('Preview validated. Ready to upload and save to the shared server.');
- }catch(error){setImportStatus(error.message+' Your selected file is retained; correct the problem and preview again.',true);}
- finally{uploadRead.disabled=false;fileInput.disabled=false;importType.disabled=false;}
-});
+ }catch(error){setImportStatus(error.message+' Your file is still selected. Correct the problem and click Upload & save again.',true);if(/password|unlock ZIP/i.test(error.message)){document.getElementById('zip-password').focus();}}
+ finally{uploadRead.disabled=false;fileInput.disabled=false;importType.disabled=false;uploadSave.disabled=!fileInput.files.length;}
+}
+uploadRead.addEventListener('click',prepareUploadPreview);
 uploadSave.addEventListener('click',async()=>{
+ if(uploadRead.disabled)return;
+ if(!pendingUpload)await prepareUploadPreview();
  if(!pendingUpload)return;
  const {sourceCode,data}=pendingUpload;
  uploadSave.disabled=true;uploadRead.disabled=true;fileInput.disabled=true;importType.disabled=true;
