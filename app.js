@@ -639,7 +639,7 @@ function downloadTemplate(type) {
   const url = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
   const link = document.createElement("a");
   link.href = url;
-  link.download = `artha-${type.toLowerCase()}-template.csv`;
+  link.download = `banisatya-${type.toLowerCase()}-template.csv`;
   link.click();
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
@@ -842,7 +842,7 @@ function renderReport() {
     const records = data.records;
     return `<section class="report-data"><h3>${escapeHTML(label)} <small>(${data.records.length} rows)</small></h3><div class="table-scroll"><table><thead><tr>${headers.map((header) => `<th>${escapeHTML(header)}</th>`).join("")}</tr></thead><tbody>${records.map((record) => `<tr>${record.slice(0, headers.length).map((cell) => `<td>${escapeHTML(cell)}</td>`).join("")}</tr>`).join("")}</tbody></table></div></section>`;
   }).join("");
-  preview.innerHTML = `<div class="report-meta"><strong>Artha · Mutual Fund Report</strong><span>Generated ${escapeHTML(generated)}</span></div><div class="report-stats">${stats}</div>${tables}<p class="report-note">Report contains only data imported into this workspace. Review figures before relying on them.</p>`;
+  preview.innerHTML = `<div class="report-meta"><img class="report-company-logo" src="banisatya-logo.svg" alt="Banisatya Wealth Pvt Ltd"><strong>Banisatya Wealth Pvt Ltd · Mutual Fund Report</strong><span>Generated ${escapeHTML(generated)}</span></div><div class="report-stats">${stats}</div>${tables}<p class="report-note">Report contains only data imported into this workspace. Review figures before relying on them.</p>`;
 }
 
 function statementClients() {
@@ -1028,7 +1028,7 @@ function renderConsolidatedStatement() {
   }).join("");
   const modeLabel = mode === "group" ? "Group wise" : "Customer wise";
   document.querySelector("#consolidated-report-preview").innerHTML =
-    `<div class="report-meta"><strong>Artha · Consolidated Wealth Portfolio</strong><span>${modeLabel} · Generated ${escapeHTML(generated)}</span></div><p class="statement-report-scope">${clients.length} client${clients.length === 1 ? "" : "s"} included · ${options.length} report section${options.length === 1 ? "" : "s"}</p>${clientReports}<p class="report-note">This statement is generated only from data imported into this workspace. Sections without an imported data source are identified above; verify all figures before relying on them.</p>`;
+    `<div class="report-meta"><img class="report-company-logo" src="banisatya-logo.svg" alt="Banisatya Wealth Pvt Ltd"><strong>Banisatya Wealth Pvt Ltd · Consolidated Wealth Portfolio</strong><span>${modeLabel} · Generated ${escapeHTML(generated)}</span></div><p class="statement-report-scope">${clients.length} client${clients.length === 1 ? "" : "s"} included · ${options.length} report section${options.length === 1 ? "" : "s"}</p>${clientReports}<p class="report-note">This statement is generated only from data imported into this workspace. Sections without an imported data source are identified above; verify all figures before relying on them.</p>`;
   document.querySelector("#print-statement").disabled = false;
   document.querySelector("#statement-status").textContent = `Statement ready for ${clients.length} client${clients.length === 1 ? "" : "s"}.`;
   return true;
@@ -1229,19 +1229,19 @@ document.querySelectorAll("[data-statement-option]").forEach((input) => {
 document.querySelector("#build-statement").addEventListener("click", renderConsolidatedStatement);
 document.querySelector("#print-statement").addEventListener("click", () => {
   if (document.querySelector("#print-statement").disabled) return;
-  document.title = "Artha - Consolidated Wealth Portfolio";
+  document.title = "Banisatya Wealth Pvt Ltd - Consolidated Wealth Portfolio";
   document.body.classList.add("statement-print");
   window.print();
 });
 document.querySelector("#generate-report").addEventListener("click", () => {
-  document.title = `Artha - ${document.querySelector("#report-type").selectedOptions[0].text} Report`;
+  document.title = `Banisatya Wealth Pvt Ltd - ${document.querySelector("#report-type").selectedOptions[0].text} Report`;
   document.body.classList.add("report-print");
   window.print();
 });
 window.addEventListener("afterprint", () => {
   document.body.classList.remove("report-print");
   document.body.classList.remove("statement-print");
-  document.title = `Artha — ${activeRole === "employee" ? "Employee" : "Distributor"} Dashboard`;
+  document.title = `Banisatya Wealth Pvt Ltd — ${activeRole === "employee" ? "Employee" : "Distributor"} Dashboard`;
 });
 document.querySelector("#sign-out").addEventListener("click", (event) => {
   event.preventDefault();
@@ -1271,3 +1271,4 @@ if (Portal.user && !Portal.user.mustChangePassword) {
   setWorkspaceRole(user.role, {name:user.name, designation:user.role === "employee" ? "Employee" : "Distributor", initials:user.name.split(/\s+/).map(s=>s[0]).join("").slice(0,2)});
   loginScreen.classList.add("hidden");appScreen.classList.remove("hidden");
 } else {loginScreen.classList.remove("hidden");appScreen.classList.add("hidden");}
+
