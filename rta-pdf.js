@@ -26,17 +26,29 @@ window.RTAPdf = async function (report) {
     }
     line(buffer,bold);
   }
+  function estimatedHeight(text,bold=false){
+    ctx.font=(bold?'bold ':'')+'21px sans-serif';
+    return Math.max(1,Math.ceil(ctx.measureText(String(text)).width/1080))*31;
+  }
+  function recordHeight(data,row){
+    return 43+data.headers.reduce((height,h,j)=>{
+      const v=row[j];return height+(v!==''&&v!=null?estimatedHeight(h+': '+v):0);
+    },0);
+  }
   begin();write(report.title,true);write('Investors: '+report.scope);write('Period: '+report.period);
   write('AUM is an imported snapshot. Date filters do not reconstruct historical AUM.');
   (report.summary||[]).forEach(s=>write(s,true));
   if(report.excluded)write(report.excluded+' undated records excluded by date filters.');
   for(const block of report.blocks){
-    if(y>1450){finish();begin();}
+    const source='Source: '+block.data.filename+' | Imported: '+block.data.importedAt;
+    const firstRecordHeight=block.data.records.length?recordHeight(block.data,block.data.records[0]):0;
+    const firstSectionHeight=20+estimatedHeight(block.title,true)+estimatedHeight(source)+firstRecordHeight;
+    // Keep a section heading, provenance and its first record on the same page.
+    if(y>1450 || (firstSectionHeight<1470 && y+firstSectionHeight>1640)){finish();begin();}
     y+=20;write(block.title,true);
-    write('Source: '+block.data.filename+' | Imported: '+block.data.importedAt);
+    write(source);
     for(let i=0;i<block.data.records.length;i++){
-      ctx.font='21px sans-serif';
-      const required=43+block.data.headers.reduce((height,h,j)=>{const v=block.data.records[i][j];return height+(v!==''&&v!=null?Math.max(1,Math.ceil(ctx.measureText(h+': '+v).width/1080))*31:0);},0);
+      const required=recordHeight(block.data,block.data.records[i]);
       if(required<1400 && y+required>1640){finish();begin();write(block.title+' (continued)',true);}
       write('Record '+(i+1),true);
       block.data.headers.forEach((h,j)=>{const v=block.data.records[i][j];if(v!==''&&v!=null)write(h+': '+v);});
