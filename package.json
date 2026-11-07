@@ -7,7 +7,7 @@
   },
   "scripts": {
     "start": "node server.cjs",
-    "test": "node --test test-server.cjs test-zip.cjs"
+    "test": "node --test test-server.cjs test-zip.cjs test-upload.cjs"
   },
   "dependencies": {
     "pg": "^8.23.1"
