@@ -34,7 +34,7 @@ test('authenticated shared workspace, permissions, duplicate imports, revocation
   const eauth={cookie:elogin.cookie,csrf:elogin.json.csrf};assert.equal((await call('/api/state',eauth)).status,403);
   const change=await call('/api/password',{...eauth,method:'POST',body:{currentPassword:'Temporary-pass-123',password:'Changed-employee-123!'}});assert.equal(change.status,200);
   assert.equal((await call('/api/state',eauth)).status,401);
-  const employee={cookie:change.cookie,csrf:change.json.csrf};assert.equal((await call('/api/state',employee)).status,200);
+  let employee={cookie:change.cookie,csrf:change.json.csrf};assert.equal((await call('/api/state',employee)).status,200);
   const data={headers:['Investor Name','PAN','AMC','Folio Number','Scheme Name','Transaction ID','Transaction Date','Amount'],records:[['Investor','ABCDE1234F','A','01','Growth','T1','2026-11-01','1000']],filename:'WBR2.csv'};
   const files=[{code:'WBR2',data}];
   assert.equal((await call('/api/imports',{...employee,method:'POST',body:{files,revision:0}})).status,403);
@@ -54,6 +54,23 @@ test('authenticated shared workspace, permissions, duplicate imports, revocation
   const unchanged=await call('/api/state?afterRevision=4',employee);assert.equal(unchanged.json.unchanged,true);assert.equal(unchanged.json.datasets,undefined);
   for(const url of ['/data/portal.sqlite','/server.cjs','/.env','/test-server.cjs'])assert.equal((await call(url)).status,404);
   const users=await call('/api/users',auth),id=users.json.users.find(u=>u.role==='employee').id;
+  const access=Object.fromEntries(['clients','transactions','holdings','sips','brokerage'].map(k=>[k,{view:k==='transactions',download:false}]));
+  assert.equal((await call('/api/users/'+id,{...employee,method:'PATCH',body:{permissions:access}})).status,403);
+  assert.equal((await call('/api/users/'+id,{...auth,method:'PATCH',body:{permissions:{transactions:{view:false,download:true}}}})).status,400);
+  assert.equal((await call('/api/users/'+id,{...auth,method:'PATCH',body:{permissions:access}})).status,200);
+  assert.equal((await call('/api/state',employee)).status,401);
+  let restricted=await call('/api/login',{method:'POST',body:{email:'employee@example.test',password:'Changed-employee-123!',role:'employee'}});
+  employee={cookie:restricted.cookie,csrf:restricted.json.csrf};
+  assert.equal((await call('/api/state',employee)).json.permissions.transactions.download,false);
+  assert.equal((await call('/api/state',employee)).json.datasets.WBR2.records.length,1);
+  assert.equal((await call('/api/reports/authorize-download',{...employee,method:'POST',body:{categories:['transactions']}})).status,403);
+  access.transactions={view:false,download:false};access.holdings={view:true,download:true};
+  await call('/api/users/'+id,{...auth,method:'PATCH',body:{permissions:access}});
+  restricted=await call('/api/login',{method:'POST',body:{email:'employee@example.test',password:'Changed-employee-123!',role:'employee'}});
+  employee={cookie:restricted.cookie,csrf:restricted.json.csrf};
+  assert.equal((await call('/api/state',employee)).json.datasets.WBR2,undefined);
+  assert.equal((await call('/api/reports/authorize-download',{...employee,method:'POST',body:{categories:['holdings']}})).status,200);
+  assert.equal((await call('/api/reports/authorize-download',{...employee,method:'POST',body:{categories:['holdings','transactions']}})).status,403);
   assert.equal((await call('/api/users/'+id,{...auth,method:'PATCH',body:{password:'Reset-employee-123!'}})).status,200);
   assert.equal((await call('/api/state',employee)).status,401);
   const resetLogin=await call('/api/login',{method:'POST',body:{email:'employee@example.test',password:'Reset-employee-123!',role:'employee'}});
@@ -102,3 +119,4 @@ test('login throttling persists and malformed requests fail closed',async()=>{
   assert.equal((await fetch(origin+'/api/login',{method:'POST',headers,body:JSON.stringify({email:'missing@example.test',password:'bad',role:'employee'})})).status,429);
  }finally{await new Promise(r=>app.server.close(r));}
 });
+
