@@ -32,6 +32,13 @@ async function createPortal(options={}){
   const row=await statement('SELECT revision FROM workspaces WHERE id=?'+(db.kind==='postgres'?' FOR SHARE':''),workspace);
   return {revision:row.revision,datasets:Object.fromEntries((await db.all('SELECT code,data FROM datasets WHERE workspace_id=?',workspace)).map(x=>[x.code,JSON.parse(x.data)])),families:Object.fromEntries((await db.all('SELECT id,data FROM families WHERE workspace_id=?',workspace)).map(x=>[x.id,JSON.parse(x.data)]))};
  });}
+ const defaultPermissions=()=>Object.fromEntries(Object.keys(codes).map(k=>[k,{view:true,download:true}]));
+ function validatePermissions(value){
+  if(!value||typeof value!=='object'||Array.isArray(value)||Object.keys(value).some(k=>!codes[k]))fail(400,'Invalid report permissions.');
+  return Object.fromEntries(Object.keys(codes).map(k=>{const p=value[k];if(!p||typeof p.view!=='boolean'||typeof p.download!=='boolean'||(p.download&&!p.view))fail(400,'Download access requires view access.');return [k,{view:p.view,download:p.download}];}));
+ }
+ async function permissions(u){const row=await statement('SELECT data FROM employee_permissions WHERE user_id=?',u.id);return row?validatePermissions(JSON.parse(row.data)):defaultPermissions();}
+ async function savePermissions(id,value){await db.run('INSERT INTO employee_permissions(user_id,data) VALUES(?,?) ON CONFLICT(user_id) DO UPDATE SET data=excluded.data',id,JSON.stringify(value));}
  async function audit(u,action,detail={}){await db.run('INSERT INTO audit(workspace_id,user_id,action,detail,created_at) VALUES(?,?,?,?,?)',u.workspace_id,u.id,action,JSON.stringify(detail),new Date().toISOString());}
  async function revision(u,expected){const row=await statement('SELECT revision FROM workspaces WHERE id=?'+(db.kind==='postgres'?' FOR UPDATE':''),u.workspace_id);if(!Number.isSafeInteger(expected)||row.revision!==expected)fail(409,'Shared data changed on another device. Refresh and try again.');}
  async function increment(u){await db.run('UPDATE workspaces SET revision=revision+1 WHERE id=?',u.workspace_id);}
@@ -107,8 +114,9 @@ async function createPortal(options={}){
     if(u.must_change)fail(403,'Change your temporary password before accessing portfolio data.');
     if(route==='/api/state'&&req.method==='GET'){
       if(url.searchParams.has('afterRevision')){const current=await statement('SELECT revision FROM workspaces WHERE id=?',u.workspace_id);if(String(current.revision)===url.searchParams.get('afterRevision')){send(200,{unchanged:true,revision:current.revision});return;}}
-      send(200,await state(u.workspace_id));return;
+      const result=await state(u.workspace_id);if(u.role==='employee'){result.permissions=await permissions(u);result.datasets=Object.fromEntries(Object.entries(result.datasets).filter(([code])=>result.permissions[categories[code]]?.view));}send(200,result);return;
     }
+    if(route==='/api/reports/authorize-download'&&req.method==='POST'){const b=await body(req);if(!Array.isArray(b.categories)||!b.categories.length||b.categories.some(k=>!codes[k]))fail(400,'Choose report categories.');const access=await permissions(u);if(u.role==='employee'&&b.categories.some(k=>!access[k].view||!access[k].download))fail(403,'You do not have download access for this report.');await audit(u,'report_download',{categories:b.categories});send(200,{ok:true});return;}
     if(route==='/api/imports'&&req.method==='POST'){
       if(u.role!=='distributor')fail(403,'Only distributors can upload reports.');const b=await body(req);
       if(!Array.isArray(b.files)||!b.files.length||b.files.length>25)fail(400,'Select between 1 and 25 report files.');
@@ -133,16 +141,16 @@ async function createPortal(options={}){
       await transaction(async()=>{await revision(u,b.revision);await db.run('DELETE FROM families WHERE workspace_id=?',u.workspace_id);for(const [id,f] of Object.entries(b.families))await db.run('INSERT INTO families VALUES(?,?,?)',u.workspace_id,id,JSON.stringify({name:f.name.trim(),members:[...new Set(f.members)]}));await increment(u);await audit(u,'families_updated');});send(200,await state(u.workspace_id));return;
     }
     if(route==='/api/users'&&req.method==='GET'){
-      if(u.role!=='distributor')fail(403,'Distributor access required.');send(200,{users:await db.all('SELECT id,email,name,role,active,must_change FROM users WHERE workspace_id=? ORDER BY name',u.workspace_id)});return;
+      if(u.role!=='distributor')fail(403,'Distributor access required.');const users=await db.all('SELECT id,email,name,role,active,must_change FROM users WHERE workspace_id=? ORDER BY name',u.workspace_id);for(const user of users)if(user.role==='employee')user.permissions=await permissions(user);send(200,{users});return;
     }
     if(route==='/api/users'&&req.method==='POST'){
       if(u.role!=='distributor')fail(403,'Distributor access required.');const b=await body(req),mail=email(b.email),name=String(b.name||'').trim();if(!name||name.length>100)fail(400,'Enter an employee name.');
-      const ph=await passwordHash(b.password);if(await statement('SELECT id FROM users WHERE email=?',mail))fail(409,'This email already has an account.');
-      await transaction(async()=>{await db.run('INSERT INTO users(id,workspace_id,email,name,role,password_hash,must_change) VALUES(?,?,?,?,?,?,1)',crypto.randomUUID(),u.workspace_id,mail,name,'employee',ph);await audit(u,'employee_created',{email:mail});});send(201,{ok:true});return;
+      const access=b.permissions===undefined?defaultPermissions():validatePermissions(b.permissions);const ph=await passwordHash(b.password);if(await statement('SELECT id FROM users WHERE email=?',mail))fail(409,'This email already has an account.');
+      const id=crypto.randomUUID();await transaction(async()=>{await db.run('INSERT INTO users(id,workspace_id,email,name,role,password_hash,must_change) VALUES(?,?,?,?,?,?,1)',id,u.workspace_id,mail,name,'employee',ph);await savePermissions(id,access);await audit(u,'employee_created',{email:mail});});send(201,{ok:true});return;
     }
     if(route.startsWith('/api/users/')&&req.method==='PATCH'){
-      if(u.role!=='distributor')fail(403,'Distributor access required.');const id=route.slice('/api/users/'.length),target=await statement('SELECT * FROM users WHERE id=? AND workspace_id=? AND role=?',id,u.workspace_id,'employee');if(!target)fail(404,'Employee not found.');const b=await body(req);let ph;if(b.password!==undefined)ph=await passwordHash(b.password);if(b.active!==undefined&&typeof b.active!=='boolean')fail(400,'Invalid active status.');
-      await transaction(async()=>{if(ph)await db.run('UPDATE users SET password_hash=?,must_change=1 WHERE id=?',ph,id);if(b.active!==undefined)await db.run('UPDATE users SET active=? WHERE id=?',b.active?1:0,id);await db.run('DELETE FROM sessions WHERE user_id=?',id);await audit(u,'employee_updated',{id,passwordReset:Boolean(ph),active:b.active});});send(200,{ok:true});return;
+      if(u.role!=='distributor')fail(403,'Distributor access required.');const id=route.slice('/api/users/'.length),target=await statement('SELECT * FROM users WHERE id=? AND workspace_id=? AND role=?',id,u.workspace_id,'employee');if(!target)fail(404,'Employee not found.');const b=await body(req);const access=b.permissions===undefined?undefined:validatePermissions(b.permissions);let ph;if(b.password!==undefined)ph=await passwordHash(b.password);if(b.active!==undefined&&typeof b.active!=='boolean')fail(400,'Invalid active status.');
+      await transaction(async()=>{if(access)await savePermissions(id,access);if(ph)await db.run('UPDATE users SET password_hash=?,must_change=1 WHERE id=?',ph,id);if(b.active!==undefined)await db.run('UPDATE users SET active=? WHERE id=?',b.active?1:0,id);await db.run('DELETE FROM sessions WHERE user_id=?',id);await audit(u,'employee_updated',{id,passwordReset:Boolean(ph),active:b.active,permissions:access});});send(200,{ok:true});return;
     }
     fail(404,'API route not found.');
    }catch(e){if(!res.headersSent)send(e.status||500,{error:e.status?e.message:'Server error. Please try again.'});else res.end();if(!e.status)console.error('Portal request failed:',e.message);}
@@ -166,3 +174,4 @@ if(require.main===module){(async()=>{
 })().catch(()=>{console.error('Portal startup failed. Check database connection and configuration.');process.exitCode=1;});
 }
 module.exports={createPortal,passwordHash};
+
