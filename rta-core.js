@@ -11,6 +11,14 @@
     'Scheme Name': ['SCHEME','SCHEMENAME','PRODUCTNAME','PRODNAME','FUNDNAME'],
     'Scheme Code': ['SCHEMECODE','SCHEME_CODE','PRODUCT','PRODUCTCODE','PRODCODE','FUND_SCHEME'],
     'Transaction ID': ['TRXNNO','TRXN_NO','TRXN_NUMBER','TRANSACTIONNUMBER','TRANSACTIONID','TD_TRNO','TRANNO'],
+    'Unique Transaction ID': ['UNIQUE_NO','UNIQUENO','UNIQUEID','TRXN_IDNO'],
+    'Transaction Sequence': ['SEQ_NO','SEQNO','SEQUENCE_NO','SEQUENCENO'],
+    'Transaction Suffix': ['TRXN_SUFFIX','TRXNSUFFIX','TRXN_SUFFI'],
+    'Transaction Mode': ['TRXN_MODE','TRXNMODE','TRANSACTIONMODE'],
+    'Transaction Source': ['SRC_CODE','SRCCODE','SOURCECODE'],
+    'Source Serial Number': ['SRC_SERIAL','SRCSERIAL','SOURCE_SERIAL','SOURCESERIALNUMBER'],
+    'User Transaction ID': ['USER_TRXNO','USERTRXNO','USER_TRXNN','USR_TRXNO'],
+    'Reversal Code': ['REVERSAL_CODE','REVERSALCO','REVERSAL_C','REVERSALCODE'],
     'Transaction Date': ['TRADDATE','TRAD_DATE','TRXNDATE','TRXN_DATE','TRANSACTIONDATE','TD_TRDT','DATE','TRADEDATE'],
     'Transaction Type': ['TRXNTYPE','TRXN_TYPE','TRXN_NATURE','TRANSACTIONTYPE','TRDESC','TD_TRTYPE','TRXN_DESC'],
     Amount: ['AMOUNT','TRXN_AMOUNT','TRXNAMOUNT','TD_AMT','GROSSAMOUNT','NETAMOUNT'],
@@ -52,6 +60,19 @@
     if (data.category==='clients') return JSON.stringify([data.provider,get('AMC'),get('Folio Number')]);
     if (data.category==='holdings') return JSON.stringify(base);
     const id=get(data.category==='sips'?'Registration ID':'Transaction ID');
+    if(data.category==='transactions' && data.provider==='CAMS'){
+      // CAMS transaction numbers can recur for different dates, types, modes and legs.
+      // Amount and units are deliberately excluded: financial corrections must conflict.
+      const usableId=id&&!/^0+$/.test(id);
+      const unique=get('Unique Transaction ID'),sequence=get('Transaction Sequence');
+      if(usableId||unique||sequence)return JSON.stringify([...base,usableId?id:'',unique,sequence,
+        date(value(data,row,'Transaction Date')),get('Transaction Type'),get('Transaction Mode'),
+        get('Transaction Source'),get('Source Serial Number'),get('User Transaction ID'),
+        get('Transaction Suffix'),get('Reversal Code')]);
+      // A missing/zero transaction number is not a reliable identifier. Preserve distinct
+      // rows, and skip only complete identical rows rather than inventing a shared ID.
+      return JSON.stringify([...base,...data.headers.map((h,i)=>[header(h),norm(row[i])]).sort((a,b)=>a[0].localeCompare(b[0]))]);
+    }
     if(id) return JSON.stringify([...base,id,...(data.category==='brokerage'?[get('Period From'),get('Period To'),get('Brokerage Type')]:[])]);
     // Without an RTA ID, only identical complete rows can safely be considered duplicates.
     return JSON.stringify([...base,...data.headers.map((h,i)=>[header(h),norm(row[i])]).sort((a,b)=>a[0].localeCompare(b[0]))]);
@@ -76,16 +97,19 @@
     const headers=Array.from(new Set([...prior.flatMap(d=>d.headers),...data.headers]));
     const rebase=d=>d.records.map(r=>headers.map(h=>value(d,r,h)));
     const merged={...data,headers,records:[]};
-    const rows=new Map(); let duplicates=0,updated=0;
+    const rows=new Map(),origins=new Map(); let duplicates=0,updated=0;
     if(!snapshot) prior.forEach(d=>rebase(d).forEach(r=>rows.set(key(merged,r),r)));
-    rebase(data).forEach(r=>{
+    rebase(data).forEach((r,index)=>{
       const k=key(merged,r), old=rows.get(k);
       if(old && JSON.stringify(old)===JSON.stringify(r)) duplicates++;
       else if(old){
-        if(data.category==='transactions' || data.category==='brokerage') throw Error('Conflicting values for an existing RTA record ID. No data saved; review the source file.');
+        if(data.category==='transactions' || data.category==='brokerage'){
+          const changed=headers.filter((h,i)=>old[i]!==r[i]);
+          throw Error(`Row ${index+2} conflicts with ${origins.has(k)?'row '+origins.get(k)+' in this file':'a previously saved record'} for the same transaction identity. Different fields: ${changed.join(', ')}. No data saved; obtain a corrected RTA export or review these rows.`);
+        }
         updated++;
       }
-      rows.set(k,r);
+      rows.set(k,r);if(!origins.has(k))origins.set(k,index+2);
     });
     merged.records=Array.from(rows.values());
     merged.importSummary={duplicates,updated,snapshot,rows:merged.records.length};
@@ -95,3 +119,4 @@
   root.RTA={normalize,value,key,merge,date,fields};
   if(typeof module!=='undefined') module.exports=root.RTA;
 })(typeof window==='undefined'?global:window);
+
