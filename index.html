@@ -172,10 +172,10 @@
             <div><span class="eyebrow" id="today-label"></span><h1 id="page-title">Portfolio overview</h1><p id="page-description">Import mutual fund statements to view your portfolio data.</p></div>
             <div class="heading-actions">
               <button class="outline-button" id="clear-data" type="button">Clear imported data</button>
-              <button class="primary-button" id="import-cas" type="button"><span>↑</span> Import data</button>
+              <button class="primary-button" id="import-cas" type="button"><span>↑</span> Upload reports</button>
               <button class="outline-button bulk-import-button" id="import-all" type="button"><span>↑</span> Upload RTA files</button>
               <button class="outline-button report-action" id="generate-report" type="button" hidden>Print / Save PDF</button>
-              <input id="data-file" type="file" accept=".zip,.csv,.txt,.xlsx,.xls,.dbf" hidden />
+              
               <input id="bulk-files" type="file" accept=".zip,.csv,.txt,.xlsx,.xls,.dbf" multiple hidden />
             </div>
           </section>
@@ -258,7 +258,7 @@
                 <span class="import-formats">ZIP (including password-protected), DBF, CSV / TXT, or Excel</span>
                 <button class="text-button" id="download-template" type="button">Download CSV template <span>↓</span></button>
               </div>
-              <label class="zip-password-label" for="zip-password">ZIP password (only for encrypted mailbacks)<input id="zip-password" type="password" autocomplete="off" placeholder="Enter the password supplied for your CAMS ZIP"><small>Used only in this browser to unlock the ZIP. Not saved or sent to the server.</small></label><button class="primary-button" type="button" id="import-selected-file">Choose file &amp; preview import</button><p id="import-status" class="import-status" role="status">No files imported yet. Choose a WBR code and upload the matching file.</p>
+              <div class="upload-workflow"><h3>Upload reports to your shared server</h3><p>1. Choose a file. 2. Enter its ZIP password if needed and preview. 3. Upload and save for employee reports.</p><label class="upload-file-label" for="data-file">Report file<input id="data-file" type="file" accept=".zip,.csv,.txt,.xlsx,.xls,.dbf"></label><p id="selected-upload-file" role="status">No file selected.</p><label class="zip-password-label" for="zip-password">ZIP password (only for encrypted mailbacks)<input id="zip-password" type="password" autocomplete="off" placeholder="Enter the password supplied for your CAMS ZIP"><small>Used only in this browser to unlock the ZIP. Not saved or sent to the server.</small></label><button class="primary-button" type="button" id="import-selected-file">Preview selected file</button> <button class="primary-button" type="button" id="upload-save-server" disabled>Upload &amp; save to server</button><div id="upload-preview" hidden></div><p>Saved reports are available to employees on other devices according to their report permissions.</p></div><p id="import-status" class="import-status" role="status">No files imported yet. Choose a WBR code and upload the matching file.</p>
               <div class="import-help">
                 <span>Imports merge history and skip identical records. AUM replaces that RTA snapshot. Changing brokerage layouts replaces that RTA brokerage set to avoid counting summary and detail twice. Upload CAMS ZIP files directly. Files ending in R2.zip or R2.dbf are recognized as WBR2 transactions. Select WBR2 above for other filenames. You can review the extracted file and row count before saving. Bulk files must identify their report code.</span>
               </div>
