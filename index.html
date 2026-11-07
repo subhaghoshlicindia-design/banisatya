@@ -1,6 +1,14 @@
 <!doctype html>
 <html lang="en">
   <head>
+    <script>
+      // GitHub Pages serves static files; authentication lives on Render.
+      if (location.hostname === 'subhaghoshlicindia-design.github.io') {
+        const page = location.pathname.split('/').pop();
+        const target = ['employee-login.html', 'distributor-login.html', 'setup.html'].includes(page) ? page : '';
+        location.replace('https://banisatya-free-4h4y.onrender.com/' + target);
+      }
+    </script>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#f5f7f4" />
