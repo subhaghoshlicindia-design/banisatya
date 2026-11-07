@@ -9,7 +9,7 @@ const RTA=require('./rta-core.js');
 const scrypt=promisify(crypto.scrypt);
 const hash=x=>crypto.createHash('sha256').update(x).digest('hex');
 const random=()=>crypto.randomBytes(32).toString('base64url');
-const codes={clients:['WBR9','MFSD211','MFSD311'],transactions:['WBR2','WBR2A','MFSD201','MFSD307'],holdings:['WBR22','MFSD203','MFSD310'],sips:['WBR49','MFSD243','MFSD313','MFSD230'],brokerage:['WBR6','WBR77','MFSD205','MFSD208']};
+const codes={clients:['EXCEL_CLIENTS','WBR9','MFSD211','MFSD311'],transactions:['EXCEL_TX','WBR2','WBR2A','MFSD201','MFSD307'],holdings:['EXCEL_AUM','WBR22','MFSD203','MFSD310'],sips:['WBR49','MFSD243','MFSD313','MFSD230'],brokerage:['WBR6','WBR77','MFSD205','MFSD208']};
 const categories=Object.fromEntries(Object.entries(codes).flatMap(([category,list])=>list.map(code=>[code,category])));
 function fail(status,message){const e=new Error(message);e.status=status;throw e;}
 function email(value){const s=String(value||'').trim().toLowerCase();if(s.length>254||!/^\S+@\S+\.\S+$/.test(s))fail(400,'Enter a valid email address.');return s;}
