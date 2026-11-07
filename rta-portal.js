@@ -93,7 +93,7 @@
     report={title,generated:new Date().toLocaleString('en-IN'),scope:members.map(p=>p.label).join('; '),period:`${from||'Beginning'} to ${to||'Latest'}`,blocks,excluded,summary};
     $('rta-preview').innerHTML=`<h3>${escapeHTML(title)}</h3><p>${escapeHTML(report.scope)}</p><p>${escapeHTML(report.period)}</p><p>${summary.map(escapeHTML).join(' | ')}</p>`+blocks.map(b=>statementTable(b.title,b.data)).join('');
     $('rta-status').textContent=`${blocks.reduce((s,b)=>s+b.data.records.length,0)} records; ${excluded} undated records excluded by date filter. AUM is the latest imported snapshot. ${blocks.length?'':'No matching data.'}`;
-    $('rta-download').disabled=!blocks.length;
+    $('rta-download').disabled=!blocks.length||(Portal.user?.role==='employee'&&blocks.some(b=>!Portal.state.permissions?.[b.data.category]?.download));
   }
   $('rta-preview-button').onclick=()=>{invalidate();try{generate();}catch(e){$('rta-status').textContent=e.message;}};
   $('rta-save-family').onclick=async()=>{
@@ -120,11 +120,14 @@
     if(!report)return;
     const saved=report; $('rta-download').disabled=true;
     try{
+      await Portal.request('/api/reports/authorize-download',{method:'POST',body:JSON.stringify({categories:[...new Set(saved.blocks.map(b=>b.data.category))]})});
       const pdf=await window.RTAPdf(saved);
       const url=URL.createObjectURL(new Blob([pdf],{type:'application/pdf'}));
       const link=document.createElement('a');link.href=url;link.download=saved.title.replace(/[^a-z0-9 -]/gi,'').slice(0,90)+'.pdf';link.click();setTimeout(()=>URL.revokeObjectURL(url),10000);
     }catch(e){$('rta-status').textContent='PDF download failed: '+e.message;}finally{$('rta-download').disabled=!report;}
   }
   $('rta-download').onclick=download;
+  if(Portal.user?.role==='employee')for(const option of $('rta-kind').options)if(option.value!=='all'&&!Portal.state.permissions?.[option.value]?.view)option.remove();
   refresh();renderRecords();renderEmployeeDashboard();
 })();
+
