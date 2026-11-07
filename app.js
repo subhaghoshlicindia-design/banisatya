@@ -278,7 +278,7 @@ async function readStatement(file, sourceCode) {
     const data=await readStatement(extracted,sourceCode);
     // Validate the exact DBF layout before presenting a preview or sending any data.
     RTA.merge(datasets,data,sourceCode);
-    if(!window.confirm(`Ready to import ${sourceCode} report?\n\nArchive: ${file.name}\nExtracted file: ${extracted.name}\nRows: ${data.records.length}\nColumns: ${data.headers.join(', ')}\n\nIdentical rows will be skipped and existing history preserved. Save to your shared workspace?`))throw new Error('Import cancelled. Existing data was preserved.');
+
     return {...data,filename:file.name+' / '+extracted.name};
   }
   let table;
@@ -655,8 +655,8 @@ function downloadTemplate(type) {
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
-document.querySelector("#import-cas").addEventListener("click", () => fileInput.click());
-document.querySelector("#import-selected-file").addEventListener("click", () => fileInput.click());
+document.querySelector("#import-cas").addEventListener("click", () => { document.querySelector(".upload-workflow").scrollIntoView({behavior:"smooth",block:"center"});fileInput.focus(); });
+
 const bulkInput = document.querySelector("#bulk-files");
 const bulkButton = document.querySelector("#import-all");
 bulkButton.addEventListener("click", () => bulkInput.click());
@@ -727,37 +727,47 @@ bulkInput.addEventListener("change", async () => {
     bulkInput.value = "";
   }
 });
-fileInput.addEventListener("change", async () => {
-  const file = fileInput.files[0];
-  if (!file) return;
-  const sourceCode = /R2\.(zip|dbf)$/i.test(file.name) ? 'WBR2' : importType.value;
-  importType.value = sourceCode;
-  const category = SOURCES[sourceCode].category;
-  setImportStatus(`Reading ${file.name} as ${sourceCode} (${SOURCES[sourceCode].label})…`);
-  try {
-    if (activeRole !== "distributor") throw new Error("Only distributors can import data.");
-    const saved = await Portal.importFiles([{ code: sourceCode, data: await readStatement(file, sourceCode) }]);
-    const nextData = saved.datasets[sourceCode];
-    const nextDatasets = saved.datasets;
-    Object.keys(datasets).forEach(code => delete datasets[code]);
-    Object.assign(datasets, nextDatasets);
-    displayedSource = sourceCode;
-    if (activeView !== "Reports" && activeView !== "Settings") {
-        setView(({ transactions: "Transactions", sips: "SIPs", brokerage: "Brokerage", holdings: "Investments", clients: "Clients" })[category]);
-      }
-    showAllRecords = false;
-    searchInput.value = "";
-    setImportStatus(`Imported ${nextData.records.length} rows from ${file.name} as ${sourceCode}. ${nextData.importSummary.duplicates} duplicates skipped; ${nextData.importSummary.updated} updated. ${nextData.importSummary.snapshot ? "Provider snapshot replaced." : "Existing history preserved."}`);
-    document.querySelector("#last-updated").textContent = `Updated ${new Date(nextData.importedAt).toLocaleString()}`;
-    renderRecords();
-    renderReport();
-    refreshStatementClientList();
-    showToast(`Imported ${nextData.records.length} rows from ${sourceCode}.`);
-  } catch (error) {
-    setImportStatus(error.message, true);
-  } finally {
-    fileInput.value = "";
-  }
+let pendingUpload=null;
+const uploadPreview=document.getElementById('upload-preview'),uploadSave=document.getElementById('upload-save-server'),uploadRead=document.getElementById('import-selected-file');
+function resetUploadPreview(){pendingUpload=null;uploadSave.disabled=true;uploadPreview.hidden=true;uploadPreview.innerHTML='';}
+fileInput.addEventListener('change',()=>{
+ resetUploadPreview();const file=fileInput.files[0];
+ document.getElementById('selected-upload-file').textContent=file?`${file.name} (${(file.size/1024/1024).toFixed(2)} MB)`:'No file selected.';
+ if(file&&/R2\.(zip|dbf)$/i.test(file.name))importType.value='WBR2';
+ setImportStatus(file?'File selected. Enter its ZIP password if required, then click Preview selected file.':'Choose a report file to begin.');
+});
+importType.addEventListener('change',resetUploadPreview);
+document.getElementById('zip-password').addEventListener('input',resetUploadPreview);
+uploadRead.addEventListener('click',async()=>{
+ resetUploadPreview();const file=fileInput.files[0];
+ if(!file){setImportStatus('Choose a report file first using the file selector above.',true);fileInput.focus();return;}
+ uploadRead.disabled=true;fileInput.disabled=true;importType.disabled=true;
+ try{
+  if(activeRole!=='distributor')throw Error('Only distributors can import data.');
+  const sourceCode=importType.value,data=await readStatement(file,sourceCode);
+  const check=RTA.merge(datasets,data,sourceCode);
+  pendingUpload={sourceCode,data};
+  uploadPreview.innerHTML=`<h4>Ready to upload: ${escapeHTML(sourceCode)}</h4><p>${escapeHTML(data.filename)}</p><p>${data.records.length} source rows · ${data.headers.length} columns · ${check.data.importSummary.duplicates} identical duplicates will be skipped.</p><details><summary>Review columns</summary><p>${data.headers.map(escapeHTML).join(', ')}</p></details><p>No data has been saved yet. Click Upload &amp; save to server to make it available for employee reports.</p>`;
+  uploadPreview.hidden=false;uploadSave.disabled=false;setImportStatus('Preview validated. Ready to upload and save to the shared server.');
+ }catch(error){setImportStatus(error.message+' Your selected file is retained; correct the problem and preview again.',true);}
+ finally{uploadRead.disabled=false;fileInput.disabled=false;importType.disabled=false;}
+});
+uploadSave.addEventListener('click',async()=>{
+ if(!pendingUpload)return;
+ const {sourceCode,data}=pendingUpload;
+ uploadSave.disabled=true;uploadRead.disabled=true;fileInput.disabled=true;importType.disabled=true;
+ setImportStatus('Uploading and saving to the shared server. Please keep this page open…');
+ try{
+  if(activeRole!=='distributor')throw Error('Only distributors can import data.');
+  const saved=await Portal.importFiles([{code:sourceCode,data}]),nextData=saved.datasets[sourceCode];
+  Object.keys(datasets).forEach(code=>delete datasets[code]);Object.assign(datasets,saved.datasets);displayedSource=sourceCode;
+  showAllRecords=false;searchInput.value='';renderRecords();renderReport();refreshStatementClientList();renderEmployeeDashboard();
+  document.querySelector('#last-updated').textContent=`Saved ${new Date(nextData.importedAt).toLocaleString()}`;
+  resetUploadPreview();fileInput.value='';document.getElementById('selected-upload-file').textContent='Upload complete. Choose another file to continue.';
+  setImportStatus(`Saved to server: ${nextData.records.length} ${sourceCode} rows. ${nextData.importSummary.duplicates} duplicates skipped. Employees with permission can now generate investor and family reports from this data.`);
+  showToast('Report saved to the shared server.');
+ }catch(error){uploadSave.disabled=false;setImportStatus('Upload failed. No success was confirmed. '+error.message+' Your preview is retained so you can retry.',true);}
+ finally{uploadRead.disabled=false;fileInput.disabled=false;importType.disabled=false;}
 });
 
 document.querySelector("#clear-data").addEventListener("click", async () => {
