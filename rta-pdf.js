@@ -108,6 +108,7 @@ window.RTAPdf = async function (report) {
       const numbers=d.records.map(r=>number(get(d,r,totalField[0]))).filter(n=>n!==null);
       if(numbers.length){if(y+90>bottom){next();sectionHeader(block,columns,true);}ctx.fillStyle='#eaf0f9';ctx.fillRect(left,y,width,48);ctx.fillStyle=colors.blue;font(18,true);ctx.fillText(totalField[1],left+12,y+31);ctx.textAlign='right';ctx.fillText('INR '+money(numbers.reduce((a,b)=>a+b,0)),left+width-12,y+31);ctx.textAlign='left';y+=78;}
     }
+    y+=24;
     paragraph(d.records.length+' record(s) | Data imported: '+date(d.importedAt),{size:16,color:colors.muted,gap:10});
   }
   sheets.push(canvas);
