@@ -1,16 +1,20 @@
 /* Offline, multipage A4 PDF export. Browser fonts preserve Indian-language names. */
 window.RTAPdf = async function (report) {
+  const logo=new Image();logo.src='banisatya-logo.svg';await logo.decode();
   const pages=[]; let canvas,ctx,y,page=0;
   function begin(){
     canvas=document.createElement('canvas');canvas.width=1240;canvas.height=1754;
     ctx=canvas.getContext('2d');ctx.fillStyle='#ffffff';ctx.fillRect(0,0,1240,1754);
-    ctx.fillStyle='#132d46';ctx.fillRect(0,0,1240,126);
-    ctx.fillStyle='#ffffff';ctx.font='bold 30px sans-serif';ctx.fillText('ARTHA | Mutual Fund Report',64,72);
-    ctx.font='18px sans-serif';ctx.fillText('Generated '+report.generated,64,104);y=168;page++;
+    ctx.fillStyle='#08285e';ctx.fillRect(0,0,1240,126);
+    ctx.fillStyle='#d7ae48';ctx.fillRect(0,126,1240,5);
+    ctx.fillStyle='#ffffff';ctx.fillRect(26,12,134,102);ctx.drawImage(logo,26,12,134,100);
+    ctx.fillStyle='#ffffff';ctx.font='bold 30px sans-serif';ctx.fillText('Banisatya Wealth Pvt Ltd',190,53);
+    ctx.fillStyle='#f0d58b';ctx.font='20px sans-serif';ctx.fillText('Mutual Fund Report | Where Integrity Creates Prosperity',190,83);
+    ctx.fillStyle='#ffffff';ctx.font='16px sans-serif';ctx.fillText('Generated '+report.generated,190,110);y=168;page++;
   }
   function finish(){
     ctx.fillStyle='#526174';ctx.font='17px sans-serif';
-    ctx.fillText('Imported RTA data | INR | Verify source statements | Page '+page,64,1700);
+    ctx.fillText('Banisatya Wealth Pvt Ltd | Imported RTA data | INR | Page '+page,64,1700);
     pages.push(Uint8Array.from(atob(canvas.toDataURL('image/jpeg',0.92).split(',')[1]),c=>c.charCodeAt(0)));
   }
   function line(text,bold=false){
@@ -74,3 +78,4 @@ window.RTAPdf = async function (report) {
   append('trailer\n<< /Size '+offsets.length+' /Root 1 0 R >>\nstartxref\n'+xref+'\n%%EOF');
   const result=new Uint8Array(position);let at=0;chunks.forEach(c=>{result.set(c,at);at+=c.length;});return result;
 };
+
