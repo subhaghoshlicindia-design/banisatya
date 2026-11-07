@@ -175,8 +175,8 @@
               <button class="primary-button" id="import-cas" type="button"><span>↑</span> Import data</button>
               <button class="outline-button bulk-import-button" id="import-all" type="button"><span>↑</span> Upload RTA files</button>
               <button class="outline-button report-action" id="generate-report" type="button" hidden>Print / Save PDF</button>
-              <input id="data-file" type="file" accept=".csv,.txt,.xlsx,.xls,.dbf" hidden />
-              <input id="bulk-files" type="file" accept=".csv,.txt,.xlsx,.xls,.dbf" multiple hidden />
+              <input id="data-file" type="file" accept=".zip,.csv,.txt,.xlsx,.xls,.dbf" hidden />
+              <input id="bulk-files" type="file" accept=".zip,.csv,.txt,.xlsx,.xls,.dbf" multiple hidden />
             </div>
           </section>
 
@@ -231,7 +231,7 @@
 
           <section class="middle-grid">
             <article class="panel import-panel">
-              <div class="panel-heading"><div><h2>Import distributor files</h2><p>Choose the CAMS or KFintech report code, then upload its CSV / TXT, Excel, or DBF file.</p></div></div>
+              <div class="panel-heading"><div><h2>Import distributor files</h2><p>Choose the CAMS or KFintech report code, then upload its ZIP (including password-protected), DBF, CSV / TXT, or Excel file.</p></div></div>
               <div class="import-controls">
                 <label for="import-type">CAMS / KFintech report</label>
                 <select id="import-type">
@@ -255,12 +255,12 @@
                     <option value="WBR77">WBR77</option>
                   </optgroup>
                 </select>
-                <span class="import-formats">CSV / TXT, Excel, or DBF</span>
+                <span class="import-formats">ZIP (including password-protected), DBF, CSV / TXT, or Excel</span>
                 <button class="text-button" id="download-template" type="button">Download CSV template <span>↓</span></button>
               </div>
-              <p id="import-status" class="import-status" role="status">No files imported yet. Choose a WBR code and upload the matching file.</p>
+              <label class="zip-password-label" for="zip-password">ZIP password (only for encrypted mailbacks)<input id="zip-password" type="password" autocomplete="off" placeholder="Enter the password supplied for your CAMS ZIP"><small>Used only in this browser to unlock the ZIP. Not saved or sent to the server.</small></label><p id="import-status" class="import-status" role="status">No files imported yet. Choose a WBR code and upload the matching file.</p>
               <div class="import-help">
-                <span>Imports merge history and skip identical records. AUM replaces that RTA snapshot. Changing brokerage layouts replaces that RTA brokerage set to avoid counting summary and detail twice. Unzip mailbacks before uploading; bulk filenames must contain their report code.</span>
+                <span>Imports merge history and skip identical records. AUM replaces that RTA snapshot. Changing brokerage layouts replaces that RTA brokerage set to avoid counting summary and detail twice. Upload CAMS ZIP files directly. Files ending in R2.zip or R2.dbf are recognized as WBR2 transactions. Select WBR2 above for other filenames. You can review the extracted file and row count before saving. Bulk files must identify their report code.</span>
               </div>
             </article>
           </section>
@@ -343,7 +343,7 @@
     </main>
     <div id="toast" class="toast" role="status" aria-live="polite"></div>
     <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
-    <script src="portal-api.js"></script>
+    <script src="zip-reader.min.js"></script><script src="zip-import.js"></script><script src="portal-api.js"></script>
   </body>
 </html>
 
