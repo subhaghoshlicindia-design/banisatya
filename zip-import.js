@@ -14,11 +14,11 @@
       if(reports.length!==1)throw Error('ZIP must contain exactly one DBF, CSV, TXT or Excel report. Extract multi-report archives and upload their files separately.');
       const entry=reports[0];
       if(!Number.isSafeInteger(entry.uncompressedSize)||entry.uncompressedSize>limit)throw Error('Extracted report exceeds 10 MB. Request a smaller mailback.');
-      if(entry.encrypted&&!password)throw Error('This ZIP is password-protected. Enter its ZIP password above, then select the file again.');
+      if(entry.encrypted&&!password)throw Error('This ZIP is password-protected. Enter its ZIP password above, then click Upload & save to server.');
       if(/R2\.dbf$/i.test(entry.filename)&&sourceCode!=='WBR2')throw Error('This archive contains a CAMS R2 transaction file. Select WBR2 - Transactions and upload again.');
       let blob;
       try{blob=await entry.getData(new lib.BlobWriter(),{password:password||undefined,useWebWorkers:false,checkSignature:true,onprogress:n=>{if(n>limit)throw Error('Report exceeds the extraction size limit.');}});}
-      catch{throw Error(entry.encrypted?'Could not unlock ZIP. Check its password and select the file again. No data was saved.':'Could not read ZIP. It may be damaged or use an unsupported compression format.');}
+      catch{throw Error(entry.encrypted?'Could not unlock ZIP. Check its password and click Upload & save again. No data was saved.':'Could not read ZIP. It may be damaged or use an unsupported compression format.');}
       if(blob.size>limit)throw Error('Extracted report exceeds 10 MB.');
       return new File([blob],entry.filename.split(/[\\/]/).pop());
     }finally{await reader.close();}
