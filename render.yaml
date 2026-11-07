@@ -1,0 +1,29 @@
+# Deploy this repository as a Render Blueprint. A paid service is required for disks.
+services:
+  - type: web
+    name: artha-distributor-portal
+    runtime: node
+    region: singapore
+    plan: starter
+    numInstances: 1
+    buildCommand: npm test
+    startCommand: node server.cjs
+    healthCheckPath: /api/health
+    autoDeployTrigger: checksPass
+    disk:
+      name: artha-database
+      mountPath: /var/data
+      sizeGB: 1
+    envVars:
+      - key: NODE_VERSION
+        value: 24.22.1
+      - key: NODE_ENV
+        value: production
+      - key: HOST
+        value: 0.0.0.0
+      - key: DATABASE_PATH
+        value: /var/data/artha/portal.sqlite
+      - key: SETUP_TOKEN
+        generateValue: true
+      # Render supplies RENDER_EXTERNAL_URL. Set PORTAL_ORIGIN separately only
+      # when using a custom domain instead of the default onrender.com address.

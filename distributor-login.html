@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#f5f7f4" />
+    <title>Artha — Distributor Sign In</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <main class="login-screen">
+      <section class="login-story">
+        <a class="brand brand-light" href="index.html" aria-label="Artha home">
+          <span class="brand-mark">a</span><span>artha<span class="brand-dot">.</span></span>
+        </a>
+        <div class="story-content">
+          <span class="eyebrow light-eyebrow"><span class="eyebrow-dot"></span> YOUR BUSINESS, IN BALANCE</span>
+          <h1>Every investment.<br />One clear picture.</h1>
+          <p>Bring your clients, portfolios, and mutual fund transactions together in one thoughtfully simple workspace.</p>
+          <p class="story-import-note">Import your latest CAS export whenever you need to refresh your portfolio view.</p>
+        </div>
+        <div class="story-foot"><span>Built for the people behind every portfolio.</span><span>01 — 03</span></div>
+      </section>
+
+      <section class="login-panel">
+        <div class="mobile-brand"><a class="brand" href="index.html"><span class="brand-mark">a</span><span>artha<span class="brand-dot">.</span></span></a></div>
+        <div class="login-form-wrap">
+          <span class="eyebrow">DISTRIBUTOR ACCESS</span>
+          <h2>Sign in to your desk</h2>
+          <p class="form-intro">Sign in to import or update your client portfolio data.</p>
+          <form id="distributor-login-form">
+            <label for="distributor-email">Work email</label>
+            <div class="input-wrap"><span class="input-icon">✉</span><input id="distributor-email" name="email" type="email" autocomplete="username" required /></div>
+            <div class="label-row"><label for="distributor-password">Password</label><a href="#" id="distributor-forgot-link">Forgot password?</a></div>
+            <div class="input-wrap"><span class="input-icon">⌑</span><input id="distributor-password" name="password" type="password" placeholder="Enter your password" autocomplete="current-password" required /><button class="password-toggle" type="button" aria-label="Show password">Show</button></div>
+            <p id="distributor-login-error" class="login-error" role="alert"></p>
+            <button class="primary-button login-submit" type="submit">Distributor sign in <span>→</span></button>
+          </form>
+          <div class="demo-note"><span class="info-icon">i</span><span>Use the account provided by your distributor or server administrator.</span></div>
+          <p class="signup-note"><a href="index.html">← Choose a login type</a></p>
+        </div>
+        <div class="login-legal">© 2025 Artha Financial Technologies <span>Privacy&nbsp; · &nbsp;Terms</span></div>
+      </section>
+    </main>
+    <script src="login.js"></script>
+  </body>
+</html>

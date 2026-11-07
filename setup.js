@@ -1,0 +1,3 @@
+const form=document.getElementById('setup-form'),status=document.getElementById('setup-status');
+fetch('/api/setup-status').then(r=>r.json()).then(s=>{if(!s.needsSetup){form.hidden=true;status.textContent='Setup is already complete.';}});
+form.onsubmit=async event=>{event.preventDefault();const button=form.querySelector('button');button.disabled=true;try{const response=await fetch('/api/setup',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(Object.fromEntries(new FormData(form)))});const result=await response.json();if(!response.ok)throw Error(result.error);location.assign('/distributor-login.html');}catch(e){status.textContent=e.message;}finally{button.disabled=false;}};

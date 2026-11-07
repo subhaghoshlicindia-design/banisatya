@@ -1,0 +1,340 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#f5f7f4" />
+    <title>Artha — Mutual Fund Desk</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <main id="login-screen" class="login-screen hidden">
+      <section class="login-story">
+        <a class="brand brand-light" href="index.html" aria-label="Artha home">
+          <span class="brand-mark">a</span><span>artha<span class="brand-dot">.</span></span>
+        </a>
+        <div class="story-content">
+          <span class="eyebrow light-eyebrow"><span class="eyebrow-dot"></span> YOUR BUSINESS, IN BALANCE</span>
+          <h1>Every investment.<br />One clear picture.</h1>
+          <p>Bring your clients, portfolios, and mutual fund transactions together in one thoughtfully simple workspace.</p>
+          <p class="story-import-note">Import your latest CAS export whenever you need to refresh your portfolio view.</p>
+        </div>
+        <div class="story-foot"><span>Built for the people behind every portfolio.</span><span>01 — 03</span></div>
+      </section>
+
+      <section class="login-panel">
+        <div class="mobile-brand"><a class="brand" href="index.html"><span class="brand-mark">a</span><span>artha<span class="brand-dot">.</span></span></a></div>
+        <div class="login-form-wrap">
+          <span class="eyebrow">CHOOSE YOUR ACCESS</span>
+          <h2>Welcome to Artha</h2>
+          <p class="form-intro">Choose the workspace you want to sign in to.</p>
+          <nav class="role-login-options" aria-label="Choose a login type">
+            <a class="role-login-option" href="distributor-login.html">
+              <span class="role-login-icon" aria-hidden="true">D</span>
+              <span class="role-login-copy"><strong>Distributor Login</strong><small>Manage clients, portfolios, and imports</small></span>
+              <span class="role-login-arrow" aria-hidden="true">→</span>
+            </a>
+            <a class="role-login-option" href="employee-login.html">
+              <span class="role-login-icon employee-role-icon" aria-hidden="true">E</span>
+              <span class="role-login-copy"><strong>Employee Login</strong><small>View shared data and generate reports</small></span>
+              <span class="role-login-arrow" aria-hidden="true">→</span>
+            </a>
+          </nav>
+          <div class="demo-note"><span class="info-icon">i</span><span>Sign in with your distributor or employee account. First installation? <a href="setup.html">Set up distributor access</a>.</span></div>
+        </div>
+        <div class="login-legal">© 2025 Artha Financial Technologies <span>Privacy&nbsp; · &nbsp;Terms</span></div>
+      </section>
+    </main>
+
+    <main id="app-screen" class="app-screen hidden">
+      <header class="wealth-header" id="wealth-header">
+        <div class="wealth-masthead">
+          <a class="wealth-brand" href="#" aria-label="Artha home"><span class="brand-mark">a</span><span>artha<span class="brand-dot">.</span><small>Employee workspace</small></span></a>
+          <label class="wealth-search"><span>⌕</span><input id="wealth-menu-search" type="search" placeholder="Search a menu item" aria-label="Search a menu item" /></label>
+          <span class="wealth-version">Portfolio Desk</span>
+          <button class="wealth-notifications" type="button" aria-label="Notifications">♙</button>
+          <div class="wealth-account">
+            <button class="wealth-user" id="wealth-user" type="button" aria-expanded="false" aria-controls="wealth-account-menu">
+              <span id="wealth-user-name">Employee</span><span>⌄</span><small>Employee access</small>
+            </button>
+            <div class="wealth-account-menu" id="wealth-account-menu" hidden>
+              <div class="wealth-account-identity"><strong id="wealth-account-name">Employee</strong><span>Employee access</span></div>
+              <button id="employee-logout" type="button"><span aria-hidden="true">↪</span> Log out</button>
+            </div>
+          </div>
+        </div>
+        <div class="wealth-nav-backdrop">
+          <nav class="wealth-nav" aria-label="Workspace sections">
+            <button type="button" class="wealth-nav-item active" data-wealth-view="Overview"><span class="wealth-nav-symbol presales-symbol">▧</span><span>PreSales</span></button>
+            <div class="employee-crm-slot"></div>
+            <button type="button" class="wealth-nav-item" data-wealth-view="Reports"><span class="wealth-nav-symbol reports-symbol">▤</span><span>Reports</span></button>
+            <button type="button" class="wealth-nav-item" data-wealth-message="MIS"><span class="wealth-nav-symbol mis-symbol">▥</span><span>MIS</span></button>
+            <button type="button" class="wealth-nav-item" data-wealth-message="Downloads"><span class="wealth-nav-symbol downloads-symbol">↓</span><span>Downloads</span></button>
+            <button type="button" class="wealth-nav-item" data-wealth-message="Manage Data"><span class="wealth-nav-symbol manage-symbol">▤</span><span>Manage Data</span></button>
+          </nav>
+          <div class="wealth-subnav"><button type="button" data-wealth-message="Recent items">Recent Items</button><button type="button" data-wealth-message="Beta dashboard">Beta Dashboard</button></div>
+        </div>
+      </header>
+      <aside class="sidebar" id="sidebar">
+        <a class="brand" href="#" aria-label="Artha home"><span class="brand-mark">a</span><span>artha<span class="brand-dot">.</span></span></a>
+        <div class="workspace-label">WORKSPACE</div>
+        <nav class="main-nav" aria-label="Main navigation">
+          <button class="nav-link active" data-view="Overview"><span class="nav-icon">⌂</span>Overview</button>
+          <button class="nav-link" data-view="Clients"><span class="nav-icon">♙</span>Clients</button>
+          <button class="nav-link" data-view="Investments"><span class="nav-icon">◫</span>Investments</button>
+          <button class="nav-link" data-view="Transactions"><span class="nav-icon">⇄</span>Transactions</button>
+          <button class="nav-link" data-view="SIPs"><span class="nav-icon">↻</span>SIP activity</button>
+          <button class="nav-link" data-view="Brokerage"><span class="nav-icon">₹</span>Brokerage</button>
+          <button class="nav-link" data-view="Reports"><span class="nav-icon">▤</span>Reports</button>
+        </nav>
+        <div class="sidebar-bottom">
+          <div class="help-card"><span class="help-spark">✳</span><strong>Need a hand?</strong><p>Our support team is one message away.</p><a href="mailto:support@artha.example">Get support <span>↗</span></a></div>
+          <button class="nav-link settings-link" data-view="Settings"><span class="nav-icon">⚙</span>Settings</button>
+          <button class="profile-button" id="profile-button">
+            <span class="avatar avatar-purple profile-initial">D</span><span class="profile-copy"><strong class="sidebar-profile-name">Distributor</strong><small id="profile-description">Local workspace</small></span><span class="profile-more">···</span>
+          </button>
+        </div>
+      </aside>
+
+      <section class="main-area">
+        <header class="topbar">
+          <button id="menu-toggle" class="menu-toggle" aria-label="Toggle menu">☰</button>
+          <div class="breadcrumb">Workspace <span>/</span> <strong id="breadcrumb-view">Overview</strong></div>
+          <div class="topbar-actions">
+            <div class="crm-menu-wrap">
+              <button class="crm-menu-toggle" id="crm-menu-toggle" type="button" aria-expanded="false" aria-controls="crm-menu">
+                <span class="crm-menu-icon">♙</span><span>CRM</span><span class="chevron">⌄</span>
+              </button>
+              <section class="crm-menu" id="crm-menu" aria-label="CRM menu" hidden>
+                <div class="crm-menu-head">
+                  <div><span class="eyebrow">CUSTOMER RELATIONSHIP MANAGEMENT</span><h2>CRM menu</h2></div>
+                  <label class="crm-menu-search"><span>⌕</span><input id="crm-menu-search" type="search" placeholder="Search a menu item" aria-label="Search CRM menu items" /></label>
+                  <button class="crm-menu-close" id="crm-menu-close" type="button" aria-label="Close CRM menu">×</button>
+                </div>
+                <div class="crm-menu-columns">
+                  <div class="crm-menu-column">
+                    <section class="crm-menu-group"><h3>Portfolio presentations</h3>
+                      <h4>Consolidated</h4>
+                      <button data-crm-view="Clients">CRM Centre</button><button data-crm-report>Consolidated Wealth Portfolio</button>
+                      <h4>Mutual fund</h4>
+                      <button data-crm-view="Investments">Portfolio Valuation Summary (Beta)</button><button data-crm-view="Investments">SIP Valuation (CAGR Report) (Beta)</button><button data-crm-view="Investments">Comprehensive Portfolio Chart (Beta)</button>
+                      <button data-crm-view="Investments">Portfolio Valuation Summary</button><button data-crm-view="Reports">Periodic Performance Report</button><button data-crm-view="Investments">Portfolio Exposure Summary</button><button data-crm-view="Reports">Portfolio Valuation (CAGR Report)</button><button data-crm-view="Reports">SIP Valuation (CAGR Report)</button><button data-crm-view="Investments">Portfolio Asset Allocation</button><button data-crm-view="Investments">Portfolio Gain - Loss</button><button data-crm-view="Reports">Capital Gains Report</button><button data-crm-view="Investments">Folio Ledger</button><button data-crm-view="SIPs">Active SIP Report</button><button data-crm-view="Investments">Comprehensive Portfolio Chart</button><button data-crm-view="Transactions">Account Statement</button><button data-crm-view="SIPs">Active STP Report</button><button data-crm-view="Reports">Goal wise Portfolio Report</button><button data-crm-view="SIPs">Active SWP Report</button>
+                      <h4>Life insurance</h4><button data-crm-message>Premium Calendar</button><button data-crm-message>Cash Flow Chart</button><button data-crm-message>Comprehensive Insurance Chart</button>
+                    </section>
+                  </div>
+                  <div class="crm-menu-column">
+                    <section class="crm-menu-group"><h3>Other investments</h3>
+                      <h4>General insurance</h4><button data-crm-message>Policy Fact Sheet</button>
+                      <h4>Stocks</h4><button data-crm-message>Portfolio Valuation Report</button><button data-crm-message>Stock Ledger</button><button data-crm-message>Capital Gains Report</button>
+                      <h4>FDs, RDs, bonds</h4><button data-crm-message>Investments Chart</button>
+                      <h4>PPF</h4><button data-crm-message>PPF Passbook</button><button data-crm-message>PPF Challan</button>
+                      <h4>Bullion &amp; others</h4><button data-crm-message>Bullion Valuation Report</button>
+                    </section>
+                  </div>
+                  <div class="crm-menu-column">
+                    <section class="crm-menu-group crm-transactions-group"><h3>Online MF transactions</h3>
+                      <h4 class="crm-provider">BSE Star MF</h4>
+                      <button data-crm-message>Register Investors</button><button data-crm-message>Place Orders</button><button data-crm-message>Place SIP Orders</button><button data-crm-message>Place STP Order</button><button data-crm-message>Place SWP Order</button><button data-crm-message>Mandate Registration</button><button data-crm-message>Import BSE Client Master</button><button data-crm-message>BSE Mandate Import</button><button data-crm-message>BSE FATCA Registration</button><button data-crm-message>Support and Escalation Matrix</button><button data-crm-message>Import BSE FATCA Master</button><button data-crm-message>BSE Order Log</button>
+                      <h4 class="crm-provider">NSE Mutual Fund</h4>
+                      <button data-crm-message>Register Investors</button><button data-crm-message>Place Orders</button><button data-crm-message>Place SWP Order</button><button data-crm-message>Place STP Order</button><button data-crm-message>Place SIP Order</button><button data-crm-message>ACH Mandate Registration</button><button data-crm-message>Import NSE Client Master</button>
+                    </section>
+                    <section class="crm-menu-group"><h3>Portfolio advisory</h3><h4>Mutual fund</h4><button data-crm-message>Book Profit / Stop Loss Advice</button><button data-crm-message>ELSS Redemption Available</button><button data-crm-message>LT Redemption Available</button></section>
+                  </div>
+                  <div class="crm-menu-column">
+                    <section class="crm-menu-group"><h3>Services</h3><button data-crm-message>Application Register</button><button data-crm-message>View Service Request</button></section>
+                    <section class="crm-menu-group"><h3>New products</h3><button data-crm-message>Loan Against Securities</button><button data-crm-message>Equity Baskets</button><button data-crm-message>P2P Investment</button><button data-crm-message>DigiGold</button><button data-crm-message>eCAS</button><button data-crm-message>WhatsApp (FintsoClick)</button><button data-crm-message>IPO</button></section>
+                  </div>
+                </div>
+                <p class="crm-menu-empty" id="crm-menu-empty" hidden>No matching CRM menu items.</p>
+              </section>
+            </div>
+            <button class="top-profile" id="top-profile" type="button" aria-label="Profile">
+              <span class="avatar avatar-purple profile-initial" id="top-profile-initials">D</span>
+              <span class="top-profile-copy"><strong id="top-profile-name">Distributor</strong><small id="top-profile-designation">Local workspace</small></span>
+              <span class="chevron">⌄</span>
+            </button>
+          </div>
+        </header>
+        <div class="dashboard-content">
+          <div class="demo-banner"><span>i</span> Sign in to load your shared workspace.</div>
+          <section class="page-heading">
+            <div><span class="eyebrow" id="today-label"></span><h1 id="page-title">Portfolio overview</h1><p id="page-description">Import mutual fund statements to view your portfolio data.</p></div>
+            <div class="heading-actions">
+              <button class="outline-button" id="clear-data" type="button">Clear imported data</button>
+              <button class="primary-button" id="import-cas" type="button"><span>↑</span> Import data</button>
+              <button class="outline-button bulk-import-button" id="import-all" type="button"><span>↑</span> Upload RTA files</button>
+              <button class="outline-button report-action" id="generate-report" type="button" hidden>Print / Save PDF</button>
+              <input id="data-file" type="file" accept=".csv,.txt,.xlsx,.xls,.dbf" hidden />
+              <input id="bulk-files" type="file" accept=".csv,.txt,.xlsx,.xls,.dbf" multiple hidden />
+            </div>
+          </section>
+
+          <section id="employee-dashboard" class="employee-dashboard" aria-label="Employee portfolio dashboard" hidden>
+            <div class="employee-overview-top">
+              <div class="employee-welcome">
+                <div>
+                  <h2>Welcome back, <span id="employee-welcome-name">there</span> <span class="welcome-wave" aria-hidden="true">👋</span></h2>
+                  <div class="market-status"><span>PORTFOLIO DATA STATUS</span><strong id="employee-market-status">Waiting for the latest index import</strong></div>
+                </div>
+                <div class="employee-sync"><span class="sync-dot"></span><span id="employee-updated">Waiting for portfolio data</span></div>
+              </div>
+              <div class="employee-kpis">
+                <article class="employee-kpi"><span>Total AUM <b>›</b></span><strong id="employee-aum">—</strong><small>Latest holdings import</small></article>
+                <article class="employee-kpi"><span>Active clients <b>›</b></span><strong id="employee-clients">—</strong><small>From latest holdings import</small></article>
+                <article class="employee-kpi"><span>Monthly SIP <b>›</b></span><strong id="employee-sip">—</strong><small>Imported SIP / STI / SWP data</small></article>
+                <article class="employee-kpi"><span>Revenue <b>›</b></span><strong id="employee-revenue">—</strong><small>Imported commission data</small></article>
+              </div>
+            </div>
+            <div class="employee-analytics">
+              <article class="panel employee-chart-panel">
+                <div class="panel-heading employee-chart-heading">
+                  <div><h2>Business Overview</h2><div class="employee-chart-tabs" role="group" aria-label="Business metric">
+                    <button class="active" type="button" data-business-metric="aum">AUM</button><button type="button" data-business-metric="sales">Sales</button><button type="button" data-business-metric="sip">SIP</button><button type="button" data-business-metric="brokerage">Brokerage</button>
+                  </div></div>
+                  <div class="employee-chart-filters">
+                    <label class="visually-hidden" for="employee-chart-client">Client filter</label><select id="employee-chart-client" aria-label="Client filter"><option value="">All clients</option></select>
+                    <label class="visually-hidden" for="employee-chart-type">Chart type</label><select id="employee-chart-type" aria-label="Chart type"><option value="bar">Bar Chart</option><option value="line">Line Chart</option></select>
+                    <label class="visually-hidden" for="employee-chart-range">Chart detail</label><select id="employee-chart-range" aria-label="Chart detail"><option value="6">Top 6</option><option value="8">Top 8</option><option value="all">All</option></select>
+                  </div>
+                </div>
+                <div id="employee-business-chart" class="employee-business-chart" role="img" aria-label="Business overview chart"></div>
+              </article>
+              <article class="panel employee-allocation-panel">
+                <div class="panel-heading"><div><h2>Allocation</h2><p>Distribution by scheme in the latest holdings file</p></div></div>
+                <div class="employee-allocation-content">
+                  <div id="employee-allocation-chart" class="employee-donut" role="img" aria-label="No holdings allocation data">
+                    <div class="employee-donut-center"><strong id="employee-allocation-total">—</strong><span>Total</span></div>
+                  </div>
+                  <div id="employee-allocation-legend" class="employee-allocation-legend"></div>
+                </div>
+              </article>
+            </div>
+          </section>
+
+          <section class="metric-grid" id="portfolio-metrics" aria-label="Portfolio summary">
+            <article class="metric-card"><div class="metric-top"><span>Latest AUM value</span><span class="metric-icon green-icon">₹</span></div><strong class="metric-value" id="portfolio-value">—</strong><div class="metric-bottom">From latest WBR22 / WBR53 import</div></article>
+            <article class="metric-card"><div class="metric-top"><span>SIP contributions</span><span class="metric-icon blue-icon">↻</span></div><strong class="metric-value" id="sip-value">—</strong><div class="metric-bottom">From imported SIP transactions</div></article>
+            <article class="metric-card"><div class="metric-top"><span>Redemptions</span><span class="metric-icon peach-icon">↓</span></div><strong class="metric-value" id="redemption-value">—</strong><div class="metric-bottom">From imported transactions</div></article>
+            <article class="metric-card"><div class="metric-top"><span>Commission earned</span><span class="metric-icon violet-icon">₹</span></div><strong class="metric-value" id="brokerage-value">—</strong><div class="metric-bottom">From imported WBR commission files</div></article>
+          </section>
+
+          <section class="middle-grid">
+            <article class="panel import-panel">
+              <div class="panel-heading"><div><h2>Import distributor files</h2><p>Choose the CAMS or KFintech report code, then upload its CSV / TXT, Excel, or DBF file.</p></div></div>
+              <div class="import-controls">
+                <label for="import-type">CAMS / KFintech report</label>
+                <select id="import-type">
+                  <optgroup label="Transactions">
+                    <option value="WBR2">WBR2</option>
+                    <option value="WBR2A">WBR2A</option>
+                    <option value="WBR9">WBR9</option>
+                  </optgroup>
+                  <optgroup label="SIP / STI / SWP">
+                    <option value="WBR49">WBR49</option>
+                  </optgroup>
+                  <optgroup label="AUM / holdings">
+                    <option value="WBR22">WBR22</option>
+                    <option value="WBR53">WBR53</option>
+                  </optgroup>
+                  <optgroup label="Commission">
+                    <option value="WBR6">WBR6</option>
+                    <option value="WBR51">WBR51</option>
+                    <option value="WBR70">WBR70</option>
+                    <option value="WBR71">WBR71</option>
+                    <option value="WBR77">WBR77</option>
+                  </optgroup>
+                </select>
+                <span class="import-formats">CSV / TXT, Excel, or DBF</span>
+                <button class="text-button" id="download-template" type="button">Download CSV template <span>↓</span></button>
+              </div>
+              <p id="import-status" class="import-status" role="status">No files imported yet. Choose a WBR code and upload the matching file.</p>
+              <div class="import-help">
+                <span>Imports merge history and skip identical records. AUM replaces that RTA snapshot. Changing brokerage layouts replaces that RTA brokerage set to avoid counting summary and detail twice. Unzip mailbacks before uploading; bulk filenames must contain their report code.</span>
+              </div>
+            </article>
+          </section>
+
+          <section class="panel reports-panel" id="reports-section" hidden>
+            <div class="panel-heading report-heading">
+              <div><h2>Consolidated Wealth Portfolio</h2><p>Search your imported clients, choose statement sections, then print or save as PDF.</p></div>
+            </div>
+            <section class="statement-builder" aria-label="Portfolio statement options">
+              <div class="statement-control-row">
+                <span class="statement-label">Report type</span>
+                <div class="statement-mode" role="group" aria-label="Report type">
+                  <button type="button" class="active" aria-pressed="true" data-statement-mode="group">Group wise</button>
+                  <button type="button" aria-pressed="false" data-statement-mode="customer">Customer wise</button>
+                </div>
+              </div>
+              <div class="statement-control-row statement-client-row">
+                <label class="statement-label" for="statement-client-search">Select customer(s)</label>
+                <div class="statement-client-picker">
+                  <div class="statement-client-search"><span>⌕</span><input id="statement-client-search" type="search" placeholder="Search clients by name or folio" autocomplete="off" /></div>
+                  <div class="statement-client-actions"><span id="statement-client-count">No clients loaded</span><button type="button" id="statement-select-all">Select all</button></div>
+                  <div id="statement-client-list" class="statement-client-list" role="group" aria-label="Available clients"></div>
+                </div>
+              </div>
+              <div class="statement-options">
+                <h3>Report options</h3>
+                <div class="statement-options-grid">
+                  <label><input type="checkbox" data-statement-option="Stocks" checked />Stocks</label>
+                  <label><input type="checkbox" data-statement-option="Mutual Funds" checked />Mutual Funds</label>
+                  <label><input type="checkbox" data-statement-option="PMS" checked />PMS</label>
+                  <label><input type="checkbox" data-statement-option="ULIP" checked />ULIP</label>
+                  <label><input type="checkbox" data-statement-option="Fixed Deposits/Bonds/Postal Investments" checked />Fixed Deposits/Bonds/Postal Investments</label>
+                  <label><input type="checkbox" data-statement-option="Recurring Deposits" checked />Recurring Deposits</label>
+                  <label><input type="checkbox" data-statement-option="PPF" checked />PPF</label>
+                  <label><input type="checkbox" data-statement-option="Bullion" checked />Bullion</label>
+                  <label><input type="checkbox" data-statement-option="Equity Baskets" checked />Equity Baskets</label>
+                  <label><input type="checkbox" data-statement-option="Digi Gold/Silver" checked />Digi Gold/Silver</label>
+                  <label><input type="checkbox" data-statement-option="Insurance Summary" checked />Insurance Summary</label>
+                  <label><input type="checkbox" data-statement-option="Life Insurance Portfolio" checked />Life Insurance Portfolio</label>
+                  <label><input type="checkbox" data-statement-option="Health Insurance Portfolio" checked />Health Insurance Portfolio</label>
+                  <label><input type="checkbox" data-statement-option="General Insurance Portfolio" checked />General Insurance Portfolio</label>
+                  <label><input type="checkbox" data-statement-option="Investments &amp; Premium Calendar" checked />Investments &amp; Premium Calendar</label>
+                  <label><input type="checkbox" data-statement-option="Cash Flow in Current Financial Year" checked />Cash Flow in Current Financial Year</label>
+                  <label><input type="checkbox" data-statement-option="Entire Projected Cash Flow" checked />Entire Projected Cash Flow</label>
+                </div>
+                <p class="statement-data-note">Mutual fund holdings and imported transactions are available in this preview. Other sections are included as “data not imported” until their corresponding data sources are connected.</p>
+              </div>
+              <div class="statement-actions">
+                <button class="primary-button" id="build-statement" type="button">Generate statement</button>
+                <button class="outline-button" id="print-statement" type="button" disabled>Print / Save PDF</button>
+                <span id="statement-status" role="status"></span>
+              </div>
+            </section>
+            <div id="consolidated-report-preview" class="report-preview consolidated-report-preview"></div>
+            <details class="other-reports">
+              <summary>Other imported-data reports</summary>
+              <div class="other-report-controls">
+                <label class="report-filter">Report type
+                  <select id="report-type">
+                    <option value="summary">Portfolio summary</option>
+                    <option value="holdings">Holdings</option>
+                    <option value="transactions">Transactions &amp; redemptions</option>
+                    <option value="sips">SIP transactions</option>
+                    <option value="brokerage">Brokerage</option>
+                  </select>
+                </label>
+              </div>
+              <div id="report-preview" class="report-preview"></div>
+            </details>
+          </section>
+
+          <section class="panel transactions-panel" id="transactions-section">
+            <div class="panel-heading table-heading"><div><h2 id="table-title">AUM / holdings</h2><p id="table-description">Your latest imported statement rows</p></div><div class="table-actions"><label class="source-filter" id="source-filter-label" hidden>Imported file<select id="display-source"></select></label><label class="search-box"><span>⌕</span><input id="transaction-search" type="search" placeholder="Search imported data" aria-label="Search imported data" /></label></div></div>
+            <div class="table-scroll"><table><thead id="records-head"></thead><tbody id="transactions-body"></tbody></table></div>
+            <div class="table-footer"><span id="results-count">No imported data</span><button id="show-more" hidden>Show all records <span>→</span></button></div>
+          </section>
+          <footer class="dashboard-footer"><span>Reports are stored in your shared workspace database.</span><span class="footer-actions"><span id="last-updated">No import yet</span><a href="#" id="sign-out">Sign out</a></span></footer>
+        </div>
+      </section>
+    </main>
+    <div id="toast" class="toast" role="status" aria-live="polite"></div>
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
+    <script src="portal-api.js"></script>
+  </body>
+</html>
