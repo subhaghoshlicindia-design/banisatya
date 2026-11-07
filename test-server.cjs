@@ -1,6 +1,9 @@
 const {test}=require('node:test');
 const assert=require('node:assert/strict');
-const {createPortal}=require('./server.cjs');
+const {createPortal:createServerPortal}=require('./server.cjs');
+// Tests use loopback HTTP unless a case explicitly exercises production behavior.
+// Render supplies NODE_ENV and RENDER_EXTERNAL_URL during builds as well as runtime.
+const createPortal=options=>createServerPortal({production:false,...options});
 const fs=require('node:fs'),os=require('node:os'),path=require('node:path');
 test('production cannot silently use temporary SQLite storage',async()=>{
  const {openDatabase}=require('./database.cjs');const saved=process.env.DATABASE_URL;
