@@ -46,7 +46,7 @@ window.RTAPdf = async function (report) {
       field('Transaction',200,(d,r)=>{const value=get(d,r,'Transaction Type');return ({P:'Purchase',R:'Redemption',SI:'Switch in',SO:'Switch out',DR:'Dividend reinvestment',DP:'Dividend payout',TI:'Transfer in',TO:'Transfer out'})[value]||value||'—';}),
       field('Reference / Mode',244,(d,r)=>(get(d,r,'Transaction ID')||'—')+(get(d,r,'Transaction Mode')?'\nMode: '+get(d,r,'Transaction Mode'):'')),
       field('Units',160,(d,r)=>units(get(d,r,'Units')),'right'),field('Price / NAV',156,(d,r)=>units(get(d,r,'Price','NAV','PURPRICE')),'right'),field('Amount (INR)',220,amount,'right')];
-    if(category==='holdings')return [field('Scheme / Folio',392,schemeFolio),field('Units',156,(d,r)=>units(get(d,r,'Units')),'right'),field('NAV',144,(d,r)=>units(get(d,r,'NAV','Price')),'right'),field('Cost (INR)',200,(d,r)=>money(get(d,r,'Invested Value')),'right'),field('Value (INR)',220,(d,r)=>money(get(d,r,'Current Value')),'right')];
+    if(category==='holdings')return [field('Scheme / Folio',392,schemeFolio),field('Units',156,(d,r)=>units(get(d,r,'Units')),'right'),field('NAV / date',144,(d,r)=>units(get(d,r,'NAV','Price'))+(get(d,r,'NAV Date')?'\n'+date(get(d,r,'NAV Date')):''),'right'),field('Cost (INR)',200,(d,r)=>money(get(d,r,'Invested Value')),'right'),field('Value (INR)',220,(d,r)=>money(get(d,r,'Current Value')),'right')];
     if(category==='sips')return [field('Scheme / Folio',326,schemeFolio),field('Registration',180,(d,r)=>get(d,r,'Registration ID')||'—'),field('Start date',138,(d,r)=>date(get(d,r,'Start Date'))),field('End date',138,(d,r)=>date(get(d,r,'End Date'))),field('Status',150,(d,r)=>get(d,r,'Status')||'—'),field('Amount (INR)',180,(d,r)=>money(get(d,r,'SIP Amount')),'right')];
     if(category==='brokerage')return [field('Scheme / Folio',360,schemeFolio),field('Period from',156,(d,r)=>date(get(d,r,'Period From'))),field('Period to',156,(d,r)=>date(get(d,r,'Period To'))),field('Type',228,(d,r)=>get(d,r,'Brokerage Type')||'—'),field('Brokerage (INR)',212,(d,r)=>money(get(d,r,'Brokerage Amount')),'right')];
     return [field('Investor name',280,(d,r)=>get(d,r,'Investor Name')||'—'),field('PAN',194,(d,r)=>get(d,r,'PAN')||'—'),field('Folio',206,(d,r)=>get(d,r,'Folio Number')||'—'),field('Contact',432,(d,r)=>[get(d,r,'Email'),get(d,r,'Mobile')].filter(Boolean).join('\n')||'—')];
@@ -60,7 +60,7 @@ window.RTAPdf = async function (report) {
     const title=block.investor||String(block.title||'').split(' | ')[0];
     paragraph(title+(continued?' (continued)':''),{size:23,bold:true,color:colors.blue,gap:0});
     const labels={clients:'Investor details',holdings:'Holdings valuation',transactions:'Transaction statement',sips:'Systematic plans',brokerage:'Brokerage statement'};
-    paragraph((labels[block.data.category]||'Report')+'  |  '+(block.data.provider||((block.data.sourceCode||'').startsWith('WBR')?'CAMS':'KFintech'))+'  '+(block.data.sourceCode||block.data.reportCode||''),{size:18,color:colors.muted,gap:8});
+    paragraph((labels[block.data.category]||'Report')+'  |  '+(block.data.provider||((block.data.sourceCode||'').startsWith('WBR')?'CAMS':'KFintech'))+'  '+((block.data.sourceCode||block.data.reportCode||'').startsWith('EXCEL_')?'combined export':block.data.sourceCode||block.data.reportCode||''),{size:18,color:colors.muted,gap:8});
     if(block.schemeContext)paragraph(block.schemeContext,{size:19,bold:true,color:colors.ink,gap:8});
     tableHeader(columns);
   }
