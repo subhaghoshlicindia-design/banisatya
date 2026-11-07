@@ -1,7 +1,7 @@
 /* RTA reporting and explicitly managed investor families. */
 (() => {
   'use strict';
-  importType.innerHTML = ['CAMS','KFintech'].map(provider => `<optgroup label="${provider}">${Object.entries(SOURCES).filter(([c]) => c.startsWith('WBR') === (provider==='CAMS')).map(([c,s])=>`<option value="${c}">${c} - ${s.label}</option>`).join('')}</optgroup>`).join('');
+  importType.innerHTML = ['Excel','CAMS','KFintech'].map(provider => `<optgroup label="${provider}">${Object.entries(SOURCES).filter(([c]) => RTA.providerFor(c)===provider).map(([c,s])=>`<option value="${c}">${c} - ${s.label}</option>`).join('')}</optgroup>`).join('');
   const original = document.querySelector('.statement-builder');
   original.hidden = true;
   document.querySelector('.other-reports')?.setAttribute('hidden','');
@@ -26,18 +26,18 @@
   const familyKey='artha.rta-families.v1';
   let report=null;
   function families(){return structuredClone(Portal.state.families);}
-  function entries(){return Object.entries(datasets).map(([sourceCode,data])=>({sourceCode,data:RTA.normalize({...data,category:sourceCategory(sourceCode),provider:sourceCode.startsWith('WBR')?'CAMS':'KFintech'})}));}
+  function entries(){return Object.entries(datasets).map(([sourceCode,data])=>({sourceCode,data:RTA.normalize({...data,category:sourceCategory(sourceCode),provider:RTA.providerFor(sourceCode)})}));}
   function catalogue(){
     const list=entries(); const links=new Map(); const people=new Map();
     const val=(d,r,n)=>String(RTA.value(d,r,n)||'').trim();
     const folio=(d,r)=>JSON.stringify([d.provider,val(d,r,'AMC').toUpperCase(),val(d,r,'Folio Number').toUpperCase()]);
     list.forEach(({data:d})=>d.records.forEach(r=>{const pan=val(d,r,'PAN').toUpperCase(); if(pan) {const k=folio(d,r); if(links.has(k)&&links.get(k)!==pan) links.set(k,null); else if(!links.has(k)) links.set(k,pan);}}));
-    const identity=(d,r)=>{const pan=val(d,r,'PAN').toUpperCase()||links.get(folio(d,r)); return pan?'pan:'+pan:'folio:'+folio(d,r);};
+    const identity=(d,r)=>{const pan=val(d,r,'PAN').toUpperCase()||links.get(folio(d,r)); return pan?'pan:'+pan:RTA.excelInvestorKey(d,r)||'folio:'+folio(d,r);};
     list.forEach(({data:d})=>d.records.forEach(r=>{
       if(!val(d,r,'Folio Number'))return;
       const key=identity(d,r), pan=val(d,r,'PAN'),name=val(d,r,'Investor Name');
-      if(!people.has(key))people.set(key,{key,label:(name||'Investor')+' - '+(pan||val(d,r,'Folio Number')),name:name||'Investor'});
-      else if(name && people.get(key).name==='Investor') people.set(key,{key,label:name+' - '+(pan||val(d,r,'Folio Number')),name});
+      if(!people.has(key))people.set(key,{key,label:(name||'Investor')+' - '+(pan||(d.provider==='Excel'&&val(d,r,'Investor Group Code')?'Group '+val(d,r,'Investor Group Code'):val(d,r,'Folio Number'))),name:name||'Investor'});
+      else if(name && people.get(key).name==='Investor') people.set(key,{key,label:name+' - '+(pan||(d.provider==='Excel'&&val(d,r,'Investor Group Code')?'Group '+val(d,r,'Investor Group Code'):val(d,r,'Folio Number'))),name});
     }));
     return {people:Array.from(people.values()).sort((a,b)=>a.label.localeCompare(b.label)),identity,list};
   }
@@ -45,7 +45,7 @@
   employeeClientCount=()=>String(catalogue().people.length);
   // Keep the existing dashboard client chart aligned with PAN/folio identification.
   statementClients=()=>catalogue().people.map(p=>({...p,folios:[]}));
-  clientIdentity=(row,data)=>catalogue().identity(RTA.normalize({...data,provider:data.provider||((data.sourceCode||'').startsWith('WBR')?'CAMS':'KFintech')}),RTA.normalize({...data,records:[row]}).records[0]);
+  clientIdentity=(row,data)=>catalogue().identity(RTA.normalize({...data,provider:data.provider||RTA.providerFor(data.sourceCode||'')}),RTA.normalize({...data,records:[row]}).records[0]);
   function invalidate(){ report=null; $('rta-download').disabled=true; $('rta-preview').innerHTML=''; $('rta-status').textContent='Generate a report to use the current selection.'; }
   function refresh(){
     const previous=$('rta-person').value, cat=catalogue(), saved=families();
