@@ -656,6 +656,7 @@ function downloadTemplate(type) {
 }
 
 document.querySelector("#import-cas").addEventListener("click", () => fileInput.click());
+document.querySelector("#import-selected-file").addEventListener("click", () => fileInput.click());
 const bulkInput = document.querySelector("#bulk-files");
 const bulkButton = document.querySelector("#import-all");
 bulkButton.addEventListener("click", () => bulkInput.click());
