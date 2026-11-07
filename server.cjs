@@ -60,7 +60,7 @@ async function createPortal(options={}){
   });
   res.setHeader('Set-Cookie',`${cookieName}=${token}; Path=/; HttpOnly; SameSite=Strict; Max-Age=28800${production?'; Secure':''}`);return csrf;
  }
- const staticFiles=new Set(['index.html','styles.css','app.js','rta-core.js','rta-portal.js','rta-pdf.js','portal-api.js','account-ui.js','login.js','setup.html','setup.js','employee-login.html','employee-login.js','distributor-login.html','distributor-login.js']);
+ const staticFiles=new Set(['banisatya-logo.svg','index.html','styles.css','app.js','rta-core.js','rta-portal.js','rta-pdf.js','portal-api.js','account-ui.js','login.js','setup.html','setup.js','employee-login.html','employee-login.js','distributor-login.html','distributor-login.js']);
  const server=http.createServer(async(req,res)=>{
    res.setHeader('X-Content-Type-Options','nosniff');res.setHeader('Referrer-Policy','same-origin');res.setHeader('X-Frame-Options','DENY');
    res.setHeader('Content-Security-Policy',"default-src 'self'; script-src 'self' https://cdn.sheetjs.com; style-src 'self' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; form-action 'self'");
@@ -71,7 +71,7 @@ async function createPortal(options={}){
     if(!route.startsWith('/api/')){
       if(!['GET','HEAD'].includes(req.method))fail(405,'Method not allowed.');
       const file=route==='/'?'index.html':route.slice(1);if(!staticFiles.has(file))fail(404,'Not found.');
-      res.setHeader('Cache-Control','no-store');res.setHeader('Content-Type',file.endsWith('.js')?'text/javascript; charset=utf-8':file.endsWith('.css')?'text/css; charset=utf-8':'text/html; charset=utf-8');res.end(req.method==='HEAD'?undefined:fs.readFileSync(path.join(__dirname,file)));return;
+      res.setHeader('Cache-Control','no-store');res.setHeader('Content-Type',file.endsWith('.svg')?'image/svg+xml':file.endsWith('.js')?'text/javascript; charset=utf-8':file.endsWith('.css')?'text/css; charset=utf-8':'text/html; charset=utf-8');res.end(req.method==='HEAD'?undefined:fs.readFileSync(path.join(__dirname,file)));return;
     }
     // Host health probes must not keep a free database awake. Startup verifies DB access.
     if(route==='/api/health'&&req.method==='GET'){send(200,{ok:true});return;}
