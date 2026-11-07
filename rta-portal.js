@@ -82,7 +82,7 @@
           if(!date||!/^\d{4}-\d{2}-\d{2}$/.test(date)){excluded++;return false;}
           return (!from||date>=from)&&(!to||date<=to);
         });
-        if(rows.length)blocks.push({title:person.label+' | '+CATEGORY_LABELS[data.category]+' | '+sourceCode,data:{...data,records:rows}});
+        if(rows.length)blocks.push({investor:person.label,title:person.label+' | '+CATEGORY_LABELS[data.category]+' | '+sourceCode,data:{...data,records:rows}});
       }
     }
     const summary=Object.entries({holdings:'Current Value',transactions:'Amount',sips:'SIP Amount',brokerage:'Brokerage Amount'}).flatMap(([category,field])=>{
