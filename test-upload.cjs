@@ -23,3 +23,21 @@ test('Optional preview does not save data; password failure retains file and pre
  const failure=harness(true);await failure.element('upload-save-server').click();assert.equal(failure.saves(),0);assert.equal(failure.element('data-file').files.length,1);assert.equal(failure.element('zip-password').focused,true);assert.equal(failure.element('upload-save-server').disabled,false);
 });
 
+test('Dedicated WBR9 action selects client master and invalidates an old transaction preview',async()=>{
+ const h=harness();await h.element('import-selected-file').click();
+ h.element('import-wbr9').click();
+ assert.equal(h.element('import-type').value,'WBR9');assert.equal(h.element('data-file').focused,true);
+ assert.equal(h.element('upload-preview').hidden,true);assert.equal(h.saves(),0);
+ assert.match(h.context.status,/Investor Static Details.*PDF statements cannot be imported/);
+});
+
+test('WBR9 client master maps CAMS headings, skips repeat rows and updates existing folio details',()=>{
+ const data={category:'clients',headers:['AMC_CODE','FOLIOCHK','INV_NAME','PAN_NO','EMAIL','MOBILE_NO'],records:[['DEMO','DEMO-001','DEMO Investor','ABCDE1234F','demo@example.test','0000000000']],filename:'CAMS_WBR9.csv'};
+ const first=RTA.merge({},data,'WBR9');assert.equal(first.data.records.length,1);
+ assert.equal(RTA.value(first.data,first.data.records[0],'Investor Name'),'DEMO Investor');
+ assert.equal(RTA.value(first.data,first.data.records[0],'PAN'),'ABCDE1234F');
+ const repeated=RTA.merge(first.datasets,data,'WBR9');assert.equal(repeated.data.importSummary.duplicates,1);
+ const changed=structuredClone(data);changed.records[0][4]='updated@example.test';
+ const updated=RTA.merge(repeated.datasets,changed,'WBR9');assert.equal(updated.data.records.length,1);
+ assert.equal(updated.data.importSummary.updated,1);assert.equal(RTA.value(updated.data,updated.data.records[0],'Email'),'updated@example.test');
+});
