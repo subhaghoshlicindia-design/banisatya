@@ -11,6 +11,7 @@ for (const [category, codes] of Object.entries({
 SOURCES.EXCEL_AUM.label='AUM List (combined Excel export)';
 SOURCES.EXCEL_TX.label='Transactions Report (combined Excel export)';
 SOURCES.EXCEL_CLIENTS.label='Excel client master';
+SOURCES.WBR9.label='Investor static details / client master';
 const CATEGORY_LABELS = {
   clients: "Client master",
   holdings: "AUM / holdings",
@@ -274,6 +275,7 @@ function readDbf(buffer) {
 async function readStatement(file, sourceCode) {
   if (file.size > MAX_FILE_SIZE) throw new Error("The file is larger than 10 MB. Export a smaller statement and try again.");
   const extension = file.name.split(".").pop().toLowerCase();
+  if(extension==='pdf')throw new Error('PDF statements cannot be imported as investor data. Request CAMS WBR9 - Investor Static Details in DBF, Excel or CSV format, then select WBR9 and upload that data file or its ZIP.');
   if(extension==='zip'){
     const passwordField=document.getElementById('zip-password');
     let extracted;
@@ -741,6 +743,10 @@ fileInput.addEventListener('change',()=>{
 });
 importType.addEventListener('change',resetUploadPreview);
 document.getElementById('zip-password').addEventListener('input',resetUploadPreview);
+document.getElementById('import-wbr9').addEventListener('click',()=>{
+ importType.value='WBR9';resetUploadPreview();fileInput.focus();
+ setImportStatus('CAMS WBR9 selected: choose the Investor Static Details DBF, Excel or CSV file, or its ZIP. PDF statements cannot be imported.');
+});
 async function prepareUploadPreview(){
  resetUploadPreview();const file=fileInput.files[0];
  if(!file){setImportStatus('Choose a report file first using the file selector above.',true);fileInput.focus();return;}
@@ -1301,4 +1307,3 @@ if (Portal.user && !Portal.user.mustChangePassword) {
   setWorkspaceRole(user.role, {name:user.name, designation:user.role === "employee" ? "Employee" : "Distributor", initials:user.name.split(/\s+/).map(s=>s[0]).join("").slice(0,2)});
   loginScreen.classList.add("hidden");appScreen.classList.remove("hidden");
 } else {loginScreen.classList.remove("hidden");appScreen.classList.add("hidden");}
-
