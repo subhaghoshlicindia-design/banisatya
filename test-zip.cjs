@@ -24,3 +24,11 @@ test('ordinary mailbacks, multiple reports, malformed archives and size limits',
  await assert.rejects(async()=>extract(await archive(['WBR2.csv','WBR9.csv']),'','WBR2'),/exactly one/);
 });
 
+test('WBR9 accepts encrypted data archives and rejects wrong report selection and PDF-only ZIPs',async()=>{
+ const file=await archive(['nested/CAMS_WBR9.csv'],{password:'synthetic-wbr9-password',zipCrypto:true});
+ await assert.rejects(()=>extract(file,'','WBR9'),/password-protected/);
+ await assert.rejects(()=>extract(file,'synthetic-wbr9-password','WBR2'),/Select WBR9/);
+ assert.equal((await extract(file,'synthetic-wbr9-password','WBR9')).name,'CAMS_WBR9.csv');
+ const pdf=await archive(['exampleR3.pdf'],{password:'synthetic-test',zipCrypto:true});
+ await assert.rejects(()=>extract(pdf,'','WBR9'),/PDF statement.*WBR9.*DBF, Excel or CSV.*No data was saved/);
+});
