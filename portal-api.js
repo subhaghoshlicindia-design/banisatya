@@ -21,7 +21,7 @@ Portal.logout=async()=>{try{await Portal.request('/api/logout',{method:'POST',bo
 (async()=>{
   try{const me=await Portal.request('/api/me');Portal.user=me.user;Portal.csrf=me.csrf;if(!me.user.mustChangePassword)Portal.state=await Portal.request('/api/state');}
   catch(e){if(e.message!=='Please sign in.')console.warn('Session unavailable:',e.message);}
-  for(const src of ['rta-core.js','app.js','rta-pdf.js','rta-portal.js','account-ui.js','excel-import.js']){
+  for(const src of ['wbr3-core.js','rta-core.js','app.js','rta-pdf.js','rta-portal.js','account-ui.js','excel-import.js','wbr3-ui.js']){
     await new Promise((resolve,reject)=>{const script=document.createElement('script');script.src=src;script.onload=resolve;script.onerror=reject;document.body.append(script);});
   }
   Portal.refresh=async()=>{
@@ -31,4 +31,3 @@ Portal.logout=async()=>{try{await Portal.request('/api/logout',{method:'POST',bo
   };
   if(Portal.user&&!Portal.user.mustChangePassword)setInterval(Portal.refresh,60000);
 })();
-
