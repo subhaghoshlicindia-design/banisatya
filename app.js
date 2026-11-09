@@ -12,6 +12,7 @@ SOURCES.EXCEL_AUM.label='AUM List (combined Excel export)';
 SOURCES.EXCEL_TX.label='Transactions Report (combined Excel export)';
 SOURCES.EXCEL_CLIENTS.label='Excel client master';
 SOURCES.WBR9.label='Investor static details / client master';
+SOURCES.WBR3={category:'aum-summary',label:'Sales and AUM summary (PDF / ZIP)'};
 const CATEGORY_LABELS = {
   clients: "Client master",
   holdings: "AUM / holdings",
@@ -91,6 +92,7 @@ function sourceCategory(sourceCode) {
 }
 
 function sourceCodeFromFilename(filename) {
+  if(/R3\.(zip|pdf)$/i.test(filename))return 'WBR3';
   if(/R2\.(zip|dbf)$/i.test(filename))return 'WBR2';
   const stem = filename.replace(/\.[^.]+$/, "").toUpperCase();
   const codes = Object.keys(SOURCES).sort((left, right) => right.length - left.length);
@@ -272,15 +274,20 @@ function readDbf(buffer) {
   return { headers, records };
 }
 
-async function readStatement(file, sourceCode) {
+async function readStatement(file, sourceCode, archivePassword='') {
   if (file.size > MAX_FILE_SIZE) throw new Error("The file is larger than 10 MB. Export a smaller statement and try again.");
   const extension = file.name.split(".").pop().toLowerCase();
-  if(extension==='pdf')throw new Error('PDF statements cannot be imported as investor data. Request CAMS WBR9 - Investor Static Details in DBF, Excel or CSV format, then select WBR9 and upload that data file or its ZIP.');
+  if(sourceCode==='WBR3'&&extension!=='pdf'&&extension!=='zip')throw new Error('Choose the original CAMS WBR3 PDF or its ZIP. WBR3 summary tables use a different layout from investor holdings feeds.');
+  if(extension==='pdf'){
+    if(sourceCode!=='WBR3')throw new Error('For CAMS WBR3 Sales and AUM PDFs, select WBR3 - Sales and AUM summary. Other reports need DBF, Excel or CSV data.');
+    const field=document.getElementById('zip-password');try{return await WBR3.readPdf(file,field.value||archivePassword);}finally{field.value='';}
+  }
   if(extension==='zip'){
     const passwordField=document.getElementById('zip-password');
+    const password=passwordField.value;
     let extracted;
-    try{extracted=await RTAZip.extract(file,passwordField.value,sourceCode);}finally{passwordField.value='';}
-    const data=await readStatement(extracted,sourceCode);
+    try{extracted=await RTAZip.extract(file,password,sourceCode);}finally{passwordField.value='';}
+    const data=await readStatement(extracted,sourceCode,password);
     // Validate the exact DBF layout before presenting a preview or sending any data.
     RTA.merge(datasets,data,sourceCode);
 
@@ -643,6 +650,7 @@ function csvCell(value) {
 }
 
 function downloadTemplate(type) {
+  if(type==='WBR3'){showToast('WBR3 uses the original CAMS Sales and Assets PDF or its ZIP. No CSV template is required.');return;}
   const category = SOURCES[type].category;
   const templates = {
     clients: ["Investor Name", "PAN", "AMC", "Folio Number", "Email", "Mobile"],
@@ -739,6 +747,7 @@ fileInput.addEventListener('change',()=>{
  resetUploadPreview();const file=fileInput.files[0];
  document.getElementById('selected-upload-file').textContent=file?`${file.name} (${(file.size/1024/1024).toFixed(2)} MB)`:'No file selected.';
  if(file&&/R2\.(zip|dbf)$/i.test(file.name))importType.value='WBR2';
+ if(file&&/R3\.(zip|pdf)$/i.test(file.name))importType.value='WBR3';
  setImportStatus(file?'File selected. Enter the ZIP password if required, then click Upload & save to server. Preview is optional.':'Choose a report file to begin.');
 });
 importType.addEventListener('change',resetUploadPreview);
@@ -746,6 +755,10 @@ document.getElementById('zip-password').addEventListener('input',resetUploadPrev
 document.getElementById('import-wbr9').addEventListener('click',()=>{
  importType.value='WBR9';resetUploadPreview();fileInput.focus();
  setImportStatus('CAMS WBR9 selected: choose the Investor Static Details DBF, Excel or CSV file, or its ZIP. PDF statements cannot be imported.');
+});
+document.getElementById('import-wbr3').addEventListener('click',()=>{
+ importType.value='WBR3';resetUploadPreview();fileInput.focus();
+ setImportStatus('CAMS WBR3 selected: upload the Sales and Assets PDF or its ZIP. Amounts are in lakhs. Scheme totals and asset-aging tables are saved as a separate AUM summary.');
 });
 async function prepareUploadPreview(){
  resetUploadPreview();const file=fileInput.files[0];
@@ -759,6 +772,11 @@ async function prepareUploadPreview(){
   pendingUpload={sourceCode,data};
   uploadPreview.innerHTML=`<h4>Ready to upload: ${escapeHTML(sourceCode)}</h4><p>${escapeHTML(data.filename)}</p><p>${data.records.length} source rows · ${data.headers.length} columns · ${check.data.importSummary.duplicates} identical duplicates will be skipped.</p><details><summary>Review columns</summary><p>${data.headers.map(escapeHTML).join(', ')}</p></details><p>Preview only: no data saved yet. Click Upload &amp; save to server to make it available for employee reports.</p>`;
   uploadPreview.hidden=false;uploadSave.disabled=false;setImportStatus('Preview validated. Ready to upload and save to the shared server.');
+  if(sourceCode==='WBR3'){
+   const s=WBR3.summary(data);
+   uploadPreview.innerHTML+=`<p><strong>WBR3 AUM: ${escapeHTML(s.lakhs.toFixed(2))} lakh INR (${escapeHTML(formatCurrency(s.rupees))}) · ${s.accounts} live accounts</strong></p><p>Source AUM date: ${escapeHTML(s.asOf)} · Last NAV: ${escapeHTML(s.navDate)} · Report date: ${escapeHTML(s.reportDate)}</p><p>This is a scheme-level summary, without investor folios. It is kept separate from individual and family holdings.</p>${s.warnings.map(w=>`<p class="import-status error">${escapeHTML(w)}</p>`).join('')}`;
+   if(WBR3.tables)uploadPreview.innerHTML+=WBR3.tables(data);
+  }
  }catch(error){setImportStatus(error.message+' Your file is still selected. Correct the problem and click Upload & save again.',true);if(/password|unlock ZIP/i.test(error.message)){document.getElementById('zip-password').focus();}}
  finally{uploadRead.disabled=false;fileInput.disabled=false;importType.disabled=false;uploadSave.disabled=!fileInput.files.length;}
 }
@@ -778,6 +796,7 @@ uploadSave.addEventListener('click',async()=>{
   document.querySelector('#last-updated').textContent=`Saved ${new Date(nextData.importedAt).toLocaleString()}`;
   resetUploadPreview();fileInput.value='';document.getElementById('selected-upload-file').textContent='Upload complete. Choose another file to continue.';
   setImportStatus(`Saved to server: ${nextData.records.length} ${sourceCode} rows. ${nextData.importSummary.duplicates} duplicates skipped. Employees with permission can now generate investor and family reports from this data.`);
+  if(sourceCode==='WBR3')setImportStatus(`Saved WBR3 AUM summary to the shared server. Open Reports → CAMS WBR3 Sales and AUM summary to view or download its tables. Investor and family holdings are unchanged.`);
   showToast('Report saved to the shared server.');
  }catch(error){uploadSave.disabled=false;setImportStatus('Upload failed. No success was confirmed. '+error.message+' Your preview is retained so you can retry.',true);}
  finally{uploadRead.disabled=false;fileInput.disabled=false;importType.disabled=false;}
