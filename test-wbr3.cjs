@@ -9,6 +9,22 @@ const lines=[
  'Section 2e : Assets by age by Segment as on 06-Nov-2026','DEMO Mutual Fund','Retail 1.00 2.00 3.00 4.00 10.00 10.00 30.00','Subtotal 1.00 2.00 3.00 4.00 10.00 10.00 30.00','Grand Total 1.00 2.00 3.00 4.00 10.00 10.00 30.00','Risk Factors : source notice'
 ];
 const sample=()=>W.parseLines(lines,'DEMO_WBR3.pdf');
+
+test('WBR3 opens an empty-user-password PDF inside a protected ZIP without passing the ZIP password',async()=>{
+ const passwords=[],destroyed=[];
+ const pdfjs={getDocument(options){passwords.push(options.password);const attempt=passwords.length;const bytes=options.data;structuredClone(bytes.buffer,{transfer:[bytes.buffer]});return {promise:options.password?Promise.reject(Object.assign(Error('Incorrect password'),{name:'PasswordException'})):Promise.resolve({numPages:1,getPage:async()=>({getTextContent:async()=>({items:lines.map((str,i)=>({str,transform:[1,0,0,1,0,1000-i*10]}))})})}),destroy:async()=>destroyed.push(attempt)};}};
+ const result=await W.readPdfDocument(new File(['synthetic PDF bytes'],'DEMO.pdf'),'synthetic-zip-password',pdfjs);
+ assert.equal(result.records.length,10);assert.deepEqual(passwords,['']);assert.deepEqual(destroyed,[1]);
+});
+
+test('WBR3 retries genuinely password-protected PDFs with fresh bytes and gives a useful wrong-password error',async()=>{
+ const passwords=[],lengths=[],destroyed=[];
+ const pdfjs={getDocument(options){passwords.push(options.password);lengths.push(options.data.length);structuredClone(options.data.buffer,{transfer:[options.data.buffer]});return {promise:options.password==='synthetic-pdf-password'?Promise.resolve({numPages:1,getPage:async()=>({getTextContent:async()=>({items:lines.map((str,i)=>({str,transform:[1,0,0,1,0,1000-i*10]}))})})}):Promise.reject(Object.assign(Error('Password required'),{name:'PasswordException'})),destroy:async()=>destroyed.push(true)};}};
+ const file=new File(['synthetic PDF bytes'],'DEMO.pdf');assert.equal((await W.readPdfDocument(file,'synthetic-pdf-password',pdfjs)).records.length,10);
+ assert.deepEqual(passwords,['','synthetic-pdf-password']);assert.ok(lengths.every(n=>n===file.size));assert.equal(destroyed.length,2);
+ await assert.rejects(()=>W.readPdfDocument(file,'wrong',pdfjs),/different password from the ZIP.*No data was saved/);
+ await assert.rejects(()=>W.readPdfDocument(file,'',pdfjs),/needs its PDF password.*No data was saved/);
+});
 test('WBR3 parses all three source tables, preserves lakhs and flags the source future date',()=>{
  const data=sample(),s=W.summary(data);assert.equal(data.records.length,10);assert.equal(s.lakhs,30);assert.equal(s.rupees,3000000);assert.equal(s.accounts,5);assert.equal(s.navDate,'2026-11-06');assert.equal(s.warnings.length,1);assert.equal(data.headers.includes('Folio Number'),false);
  assert.throws(()=>W.parseLines(['not WBR3'],'wrong.pdf'),/not a recognized/);

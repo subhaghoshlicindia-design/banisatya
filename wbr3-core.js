@@ -61,12 +61,29 @@
   const lines=[];for(const item of items.filter(i=>typeof i.str==='string'&&i.str.trim()).sort((a,b)=>b.transform[5]-a.transform[5]||a.transform[4]-b.transform[4])){let line=lines.find(l=>Math.abs(l.y-item.transform[5])<1.5);if(!line){line={y:item.transform[5],items:[]};lines.push(line);}line.items.push(item);}
   return lines.sort((a,b)=>b.y-a.y).map(l=>l.items.sort((a,b)=>a.transform[4]-b.transform[4]).map(i=>i.str).join(' '));
  }
+ async function readPdfDocument(file,password,pdfjs){
+  const bytes=new Uint8Array(await file.arrayBuffer());
+  // A ZIP password is not necessarily the PDF's user password. Some CAMS PDFs
+  // permit opening with an empty user password but reject a nonempty ZIP password.
+  const attempts=password?['',password]:[''];
+  for(let index=0;index<attempts.length;index++){
+   // PDF.js transfers its input buffer to the worker. Each retry needs a fresh copy.
+   const task=pdfjs.getDocument({data:bytes.slice(),password:attempts[index],isEvalSupported:false,disableFontFace:true,useSystemFonts:true});
+   try{
+    const pdf=await task.promise;if(pdf.numPages>50)throw Error('WBR3 PDF exceeds 50 pages. Request a smaller report.');
+    const lines=[];for(let n=1;n<=pdf.numPages;n++){const page=await pdf.getPage(n);lines.push(...linesFromItems((await page.getTextContent()).items));}
+    return parseLines(lines,file.name);
+   }catch(e){
+    if(e.name!=='PasswordException')throw e;
+    if(index+1<attempts.length)continue;
+    throw Error(password?'The PDF requires a different password from the ZIP. Extract the ZIP on your device, select its PDF, and enter the PDF password in the password field. No data was saved.':'This PDF needs its PDF password. Enter it in the password field and retry. No data was saved.');
+   }finally{await task.destroy();}
+  }
+ }
  async function readPdf(file,password=''){
   const pdfjs=await import('./pdfjs.mjs');pdfjs.GlobalWorkerOptions.workerSrc=new URL('./pdf.worker.mjs',location.href).href;
-  const task=pdfjs.getDocument({data:new Uint8Array(await file.arrayBuffer()),password,isEvalSupported:false,disableFontFace:true,useSystemFonts:true});let pdf;
-  try{pdf=await task.promise;if(pdf.numPages>50)throw Error('WBR3 PDF exceeds 50 pages. Request a smaller report.');const lines=[];for(let n=1;n<=pdf.numPages;n++){const page=await pdf.getPage(n);lines.push(...linesFromItems((await page.getTextContent()).items));}return parseLines(lines,file.name);}
-  catch(e){if(e.name==='PasswordException')throw Error('This PDF needs its PDF password. Enter it in the password field and retry.');throw e;}finally{await task.destroy();}
+  return readPdfDocument(file,password,pdfjs);
  }
  function summary(data){validate(data);const rows=data.records,grand=rows.find(r=>r[0]==='Scheme AUM'&&r[14]==='Grand total');return {lakhs:number(grand[4]),rupees:Math.round(number(grand[4])*100000),accounts:Number(grand[7]),asOf:grand[1],navDate:grand[16],reportDate:grand[15],warnings:[...new Set(rows.filter(r=>r[1]>r[15]).map(r=>'The source '+r[0]+' as-of date '+r[1]+' is later than its report date '+r[15]+'. Verify this date with CAMS.'))]};}
- root.WBR3={headers,validate,parseLines,linesFromItems,readPdf,summary,val};if(typeof module==='object')module.exports=root.WBR3;
+ root.WBR3={headers,validate,parseLines,linesFromItems,readPdf,readPdfDocument,summary,val};if(typeof module==='object')module.exports=root.WBR3;
 })(typeof window==='object'?window:globalThis);
