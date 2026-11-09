@@ -7,10 +7,10 @@
   },
   "scripts": {
     "start": "node server.cjs",
-    "test": "node --test test-server.cjs test-zip.cjs test-upload.cjs test-wbr2.cjs test-excel.cjs test-excel-profiles.cjs"
+    "test": "node --test test-server.cjs test-zip.cjs test-upload.cjs test-wbr2.cjs test-wbr3.cjs test-excel.cjs test-excel-profiles.cjs"
   },
   "dependencies": {
+    "pdfjs-dist": "6.5.438",
     "pg": "^8.23.1"
   }
 }
-
