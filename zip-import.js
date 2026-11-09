@@ -10,8 +10,9 @@
     try{
       const entries=await reader.getEntries();
       if(entries.length>50)throw Error('ZIP contains too many entries. Select one report archive.');
-      const reports=entries.filter(e=>!e.directory&&!e.filename.startsWith('__MACOSX/')&&/\.(dbf|csv|txt|xlsx|xls)$/i.test(e.filename));
-      if(!reports.length&&entries.some(e=>!e.directory&&/\.pdf$/i.test(e.filename)))throw Error('This ZIP contains a PDF statement, not an importable data file. Request CAMS WBR9 - Investor Static Details in DBF, Excel or CSV format, then select WBR9 and upload its data file or ZIP. No data was saved.');
+      const reports=entries.filter(e=>!e.directory&&!e.filename.startsWith('__MACOSX/')&&(sourceCode==='WBR3'?/\.pdf$/i:/\.(dbf|csv|txt|xlsx|xls)$/i).test(e.filename));
+      if(!reports.length&&entries.some(e=>!e.directory&&/\.pdf$/i.test(e.filename)))throw Error('This ZIP contains a PDF statement. For a WBR3 Sales and AUM report, select WBR3 and upload again. WBR9 needs DBF, Excel or CSV investor details. No data was saved.');
+      if(sourceCode==='WBR3'&&reports.length!==1)throw Error('WBR3 ZIP must contain exactly one PDF report.');
       if(reports.length!==1)throw Error('ZIP must contain exactly one DBF, CSV, TXT or Excel report. Extract multi-report archives and upload their files separately.');
       const entry=reports[0];
       if(/(^|[^a-z0-9])WBR9([^a-z0-9]|$)/i.test(entry.filename)&&sourceCode!=='WBR9')throw Error('This archive contains a WBR9 investor-details file. Select WBR9 - Investor static details / client master and upload again.');
