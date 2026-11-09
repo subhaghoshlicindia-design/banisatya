@@ -90,6 +90,13 @@
     return JSON.stringify([...base,...data.headers.map((h,i)=>[header(h),norm(row[i])]).sort((a,b)=>a[0].localeCompare(b[0]))]);
   }
   function merge(existing,incoming,code) {
+    if(code==='WBR3'){
+      const parser=root.WBR3||(typeof require==='function'?require('./wbr3-core.js'):null);
+      const data=parser.validate({...incoming});
+      const same=JSON.stringify(existing.WBR3?.records)===JSON.stringify(data.records);
+      data.importSummary={duplicates:same?data.records.length:0,updated:existing.WBR3&&!same?1:0,snapshot:true,rows:data.records.length};
+      return {datasets:{...existing,WBR3:data},data};
+    }
     const data=normalize({...incoming,provider:providerFor(code),reportCode:code});
     const get=(r,n)=>value(data,r,n);
     data.records.forEach((r,i)=>{
@@ -141,4 +148,3 @@
   root.RTA={normalize,value,key,merge,date,fields,providerFor,excelInvestorKey};
   if(typeof module!=='undefined') module.exports=root.RTA;
 })(typeof window==='undefined'?global:window);
-
