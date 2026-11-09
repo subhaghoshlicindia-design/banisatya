@@ -11,6 +11,7 @@ test('Holding columns preserve zero, derive cost and weight correctly, and never
  const block=holdings('DEMO',[['Equity','0001','1000','100000','125000','125','']]),values=M.holdingValues(block.data,block.data.records[0],250000);
  assert.equal(values.averageCost,100);assert.equal(values.weight,50);assert.equal(values.absoluteReturn,25);assert.equal(values.xirr,null);
  const zero=['Equity','0001','10','0','0','0','8.40%'];const z=M.holdingValues(block.data,zero,0);assert.equal(z.averageCost,0);assert.equal(z.value,0);assert.equal(z.absoluteReturn,null);assert.equal(z.xirr,8.4);assert.equal(z.weight,null);
+ const source={headers:['AMC','AMC Name','Scheme Name']};assert.equal(M.schemeLabel(source,['D1','DEMO Mutual Fund','DEMO Growth Fund']),'AMC: DEMO Mutual Fund\nDEMO Growth Fund');assert.equal(M.schemeLabel(source,['DEMO Mutual Fund','','DEMO Growth Fund']),'AMC: DEMO Mutual Fund\nDEMO Growth Fund');assert.equal(M.schemeLabel(source,['','','DEMO Growth Fund']),'DEMO Growth Fund');
 });
 test('Long statement rows continue across pages with repeated headers and all references intact',async()=>{
  const pages=[];let current;

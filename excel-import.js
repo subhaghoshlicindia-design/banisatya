@@ -1,7 +1,7 @@
 /* Dedicated Excel importer. Reuses the shared RTA validation and server import API. */
 (function(root){
  'use strict';
- const common=['Investor Name','PAN','AMC','Folio Number'];
+ const common=['Investor Name','PAN','AMC','AMC Name','Folio Number'];
  const fields={
   clients:[...common,'Email','Mobile'],
   transactions:[...common,'Scheme Name','Scheme Code','Transaction ID','Transaction Date','Transaction Type','Transaction Mode','Transaction Sequence','Transaction Suffix','Unique Transaction ID','Transaction Source','Source Serial Number','User Transaction ID','Reversal Code','Units','Amount','Price','Stamp Duty','TDS','RTA','Investor Group Code','ARN'],
@@ -26,7 +26,7 @@
   if(typeof value==='number'&&/ID|PAN|Folio|Code|Sequence|Mobile|ARN/.test(field)&&!Number.isSafeInteger(value))throw Error('Store identifiers as Text in Excel to preserve every digit.');
   return String(value).trim();
  }
- const aliases={'Scheme Name':['Fund'],'Transaction Date':['Trans. Date'],'Transaction Type':['Trans. Type'],'Transaction ID':['RTA Tran No'],'Transaction Source':['Tran. Source'],'Invested Value':['Invested Amount'],'Units':['Balance Units'],'Price':['Trade Price'],'Investor Group Code':['Group Code','Investor Gr.Code']};
+ const aliases={'AMC Name':['AMCNAME','Fund House','Mutual Fund Name'],'Scheme Name':['Fund'],'Transaction Date':['Trans. Date'],'Transaction Type':['Trans. Type'],'Transaction ID':['RTA Tran No'],'Transaction Source':['Tran. Source'],'Invested Value':['Invested Amount'],'Units':['Balance Units'],'Price':['Trade Price'],'Investor Group Code':['Group Code','Investor Gr.Code']};
  function mapping(headers,category,RTA){return Object.fromEntries(fields[category].map(field=>{const exact=headers.findIndex(h=>norm(h)===norm(field));return [field,exact>=0?exact:headers.findIndex(h=>[...(aliases[field]||[]),...(RTA.fields[field]||[])].map(norm).includes(norm(h)))];}));}
  function detect(rows){
   for(let i=0;i<Math.min(rows.length,50);i++){const names=new Set(rows[i].map(norm));
