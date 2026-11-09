@@ -11,8 +11,10 @@
       const entries=await reader.getEntries();
       if(entries.length>50)throw Error('ZIP contains too many entries. Select one report archive.');
       const reports=entries.filter(e=>!e.directory&&!e.filename.startsWith('__MACOSX/')&&/\.(dbf|csv|txt|xlsx|xls)$/i.test(e.filename));
+      if(!reports.length&&entries.some(e=>!e.directory&&/\.pdf$/i.test(e.filename)))throw Error('This ZIP contains a PDF statement, not an importable data file. Request CAMS WBR9 - Investor Static Details in DBF, Excel or CSV format, then select WBR9 and upload its data file or ZIP. No data was saved.');
       if(reports.length!==1)throw Error('ZIP must contain exactly one DBF, CSV, TXT or Excel report. Extract multi-report archives and upload their files separately.');
       const entry=reports[0];
+      if(/(^|[^a-z0-9])WBR9([^a-z0-9]|$)/i.test(entry.filename)&&sourceCode!=='WBR9')throw Error('This archive contains a WBR9 investor-details file. Select WBR9 - Investor static details / client master and upload again.');
       if(!Number.isSafeInteger(entry.uncompressedSize)||entry.uncompressedSize>limit)throw Error('Extracted report exceeds 10 MB. Request a smaller mailback.');
       if(entry.encrypted&&!password)throw Error('This ZIP is password-protected. Enter its ZIP password above, then click Upload & save to server.');
       if(/R2\.dbf$/i.test(entry.filename)&&sourceCode!=='WBR2')throw Error('This archive contains a CAMS R2 transaction file. Select WBR2 - Transactions and upload again.');
@@ -26,4 +28,3 @@
   root.RTAZip={extract};
   if(typeof module==='object')module.exports={extract};
 })(typeof window==='object'?window:globalThis);
-
