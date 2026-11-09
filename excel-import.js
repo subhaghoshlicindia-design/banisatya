@@ -5,7 +5,7 @@
  const fields={
   clients:[...common,'Email','Mobile'],
   transactions:[...common,'Scheme Name','Scheme Code','Transaction ID','Transaction Date','Transaction Type','Transaction Mode','Transaction Sequence','Transaction Suffix','Unique Transaction ID','Transaction Source','Source Serial Number','User Transaction ID','Reversal Code','Units','Amount','Price','Stamp Duty','TDS','RTA','Investor Group Code','ARN'],
-  holdings:[...common,'Scheme Name','Scheme Code','Units','Current Value','Invested Value','NAV','NAV Date','Investor Group Code','ARN'],
+  holdings:[...common,'Scheme Name','Scheme Code','Invested Since','Units','Current Value','Invested Value','NAV','NAV Date','Investor Group Code','ARN'],
   sips:[...common,'Scheme Name','Scheme Code','Registration ID','SIP Amount','Start Date','End Date','Status'],
   brokerage:[...common,'Scheme Name','Scheme Code','Transaction ID','Brokerage Amount','Period From','Period To','Brokerage Type']
  };

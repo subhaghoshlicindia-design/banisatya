@@ -85,7 +85,7 @@
           if(!date||!/^\d{4}-\d{2}-\d{2}$/.test(date)){excluded++;return false;}
           return (!from||date>=from)&&(!to||date<=to);
         });
-        if(rows.length)blocks.push({investor:person.label,title:person.label+' | '+CATEGORY_LABELS[data.category]+' | '+sourceCode,data:{...data,records:rows}});
+        if(rows.length)blocks.push({investor:person.label,investorName:person.name,title:person.label+' | '+CATEGORY_LABELS[data.category]+' | '+sourceCode,data:{...data,records:rows}});
       }
     }
     const summary=Object.entries({holdings:'Current Value',transactions:'Amount',sips:'SIP Amount',brokerage:'Brokerage Amount'}).flatMap(([category,field])=>{
@@ -93,7 +93,7 @@
       return selected.length ? [CATEGORY_LABELS[category]+': INR '+selected.reduce((total,b)=>total+b.data.records.reduce((sum,r)=>sum+(parseAmount(RTA.value(b.data,r,field))||0),0),0).toLocaleString('en-IN',{maximumFractionDigits:2})] : [];
     });
     const title=(family?family.name:members[0].name)+' - '+$('rta-kind').selectedOptions[0].text;
-    report={title,generated:new Date().toLocaleString('en-IN'),scope:members.map(p=>p.label).join('; '),period:`${from||'Beginning'} to ${to||'Latest'}`,blocks,excluded,summary};
+    report={title,reportName:family?family.name:members[0].name,scopeType:isFamily?'family':'investor',members:members.map(p=>({name:p.name,label:p.label})),generated:new Date().toLocaleString('en-IN'),scope:members.map(p=>p.label).join('; '),period:`${from||'Beginning'} to ${to||'Latest'}`,blocks,excluded,summary};
     $('rta-preview').innerHTML=`<h3>${escapeHTML(title)}</h3><p>${escapeHTML(report.scope)}</p><p>${escapeHTML(report.period)}</p><p>${summary.map(escapeHTML).join(' | ')}</p>`+blocks.map(b=>statementTable(b.title,b.data)).join('');
     $('rta-status').textContent=`${blocks.reduce((s,b)=>s+b.data.records.length,0)} records; ${excluded} undated records excluded by date filter. AUM is the latest imported snapshot. ${blocks.length?'':'No matching data.'}`;
     $('rta-download').disabled=!blocks.length||(Portal.user?.role==='employee'&&blocks.some(b=>!Portal.state.permissions?.[b.data.category]?.download));
