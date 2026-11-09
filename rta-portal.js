@@ -26,7 +26,7 @@
   const familyKey='artha.rta-families.v1';
   let report=null;
   function families(){return structuredClone(Portal.state.families);}
-  function entries(){return Object.entries(datasets).map(([sourceCode,data])=>({sourceCode,data:RTA.normalize({...data,category:sourceCategory(sourceCode),provider:RTA.providerFor(sourceCode)})}));}
+  function entries(){return Object.entries(datasets).filter(([code])=>code!=='WBR3').map(([sourceCode,data])=>({sourceCode,data:RTA.normalize({...data,category:sourceCategory(sourceCode),provider:RTA.providerFor(sourceCode)})}));}
   function catalogue(){
     const list=entries(); const links=new Map(); const people=new Map();
     const val=(d,r,n)=>String(RTA.value(d,r,n)||'').trim();
@@ -130,4 +130,3 @@
   if(Portal.user?.role==='employee')for(const option of $('rta-kind').options)if(option.value!=='all'&&!Portal.state.permissions?.[option.value]?.view)option.remove();
   refresh();renderRecords();renderEmployeeDashboard();
 })();
-
