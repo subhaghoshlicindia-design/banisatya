@@ -39,10 +39,12 @@ test('Combined Excel reports persist through the API and are accessible to autho
   assert.equal((await call('/api/users',admin,{name:'DEMO Employee',email:'excel-employee@example.test',password:'Temporary-password-123'})).status,201);
   const employeeLogin=await call('/api/login',{}, {email:'excel-employee@example.test',password:'Temporary-password-123',role:'employee'}),changed=await call('/api/password',{cookie:employeeLogin.cookie,csrf:employeeLogin.json.csrf},{currentPassword:'Temporary-password-123',password:'Changed-password-123'}),employee={cookie:changed.cookie,csrf:changed.json.csrf};
   const tx=prepare([txHeaders,['07/11/2026','DEMO','DEMO AMC','DEMO Fund','001','SIP',100,10,10,'CAMS','T1','RTA','G1']]),aum=prepare([aumHeaders,['G1','DEMO','DEMO AMC','DEMO Fund','001',100,10,12,'07/11/2026',120]]);
-  assert.equal((await call('/api/imports',admin,{revision:0,files:[{code:'EXCEL_TX',data:tx.data},{code:'EXCEL_AUM',data:aum.data}]})).status,200);
+  const clients={headers:['AMC_CODE','FOLIOCHK','INV_NAME','PAN_NO','EMAIL'],records:[['DEMO AMC','001','DEMO Investor','ABCDE1234F','demo@example.test']],filename:'DEMO_WBR9.csv'};
+  assert.equal((await call('/api/imports',admin,{revision:0,files:[{code:'EXCEL_TX',data:tx.data},{code:'EXCEL_AUM',data:aum.data},{code:'WBR9',data:clients}]})).status,200);
+  assert.equal((await call('/api/state',employee)).json.datasets.WBR9.records.length,1);
+  assert.equal((await call('/api/reports/authorize-download',employee,{categories:['clients']})).status,200);
   const loaded=await call('/api/state',employee);assert.equal(loaded.json.datasets.EXCEL_TX.records.length,1);assert.equal(loaded.json.datasets.EXCEL_AUM.records.length,1);assert.equal(loaded.json.datasets.EXCEL_AUM.provider,'Excel');
   assert.equal((await call('/api/reports/authorize-download',employee,{categories:['transactions','holdings']})).status,200);
   assert.equal((await call('/api/imports',employee,{revision:1,files:[{code:'EXCEL_TX',data:tx.data}]})).status,403);
  }finally{await new Promise(resolve=>app.server.close(resolve));}
 });
-
