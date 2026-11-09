@@ -1,17 +1,32 @@
 name: Portal tests
-on: [push, pull_request]
+run-name: Portal tests | ${{ github.ref_name }} | ${{ github.sha }}
+on: [push, pull_request, workflow_dispatch]
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 jobs:
   server:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
-      - run: npm ci
-      - run: npm test
+      - name: Install locked dependencies
+        run: npm ci
+      - name: Test server, imports, permissions and PDFs
+        run: npm test
+      - name: Record tested commit and result
+        if: always()
+        env:
+          TESTED_COMMIT: ${{ github.sha }}
+          TEST_RESULT: ${{ job.status }}
+        run: |
+          printf 'Commit: %s\nDatabase: SQLite\nResult: %s\n' "$TESTED_COMMIT" "$TEST_RESULT" >> "$GITHUB_STEP_SUMMARY"
   postgres:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     services:
       postgres:
         image: postgres:17
@@ -31,7 +46,16 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
-      - run: npm ci
-      - run: npm test
+      - name: Install locked dependencies
+        run: npm ci
+      - name: Test PostgreSQL persistence and shared access
+        run: npm test
         env:
           TEST_DATABASE_URL: postgres://portal_test:disposable-ci-password@127.0.0.1:5432/portal_test
+      - name: Record tested commit and result
+        if: always()
+        env:
+          TESTED_COMMIT: ${{ github.sha }}
+          TEST_RESULT: ${{ job.status }}
+        run: |
+          printf 'Commit: %s\nDatabase: PostgreSQL\nResult: %s\n' "$TESTED_COMMIT" "$TEST_RESULT" >> "$GITHUB_STEP_SUMMARY"
