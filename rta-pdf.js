@@ -27,7 +27,7 @@ window.RTAPdf = async function (report) {
     ctx.fillStyle=colors.navy;font(32,true);ctx.fillText('Banisatya Wealth Pvt Ltd',240,64);
     ctx.fillStyle=colors.muted;font(19);ctx.fillText('Where Integrity Creates Prosperity',240,96);
     ctx.fillStyle=colors.gold;ctx.fillRect(left,148,width,3);y=188;page++;
-    ctx.fillStyle=colors.muted;font(16);ctx.fillText('INVESTOR PORTFOLIO STATEMENT',left,y);
+    ctx.fillStyle=colors.muted;font(16);ctx.fillText(report.statementLabel||'INVESTOR PORTFOLIO STATEMENT',left,y);
     ctx.textAlign='right';ctx.fillText('Generated '+report.generated,left+width,y);ctx.textAlign='left';y+=40;
   }
   function next(){sheets.push(canvas);begin();}
@@ -38,6 +38,13 @@ window.RTAPdf = async function (report) {
   function ensure(height){if(y+height>bottom)next();}
   const field=(label,w,value,align='left')=>({label,w,value,align});
   function layout(category){
+    if(category==='aum-summary'){
+      // Preserve < and > in exact column names; ordinary normalized aliases remove them.
+      const value=(d,r,name)=>String(r[d.headers.indexOf(name)]??'');
+      const item=field('AMC / '+(currentWbr3Section==='Scheme AUM'?'Scheme':'Classification'),300,(d,r)=>value(d,r,'AMC')+'\n'+value(d,r,'Item'));
+      if(currentWbr3Section==='Scheme AUM')return [{...item,w:350},field('Total assets (lakhs)',180,(d,r)=>money(value(d,r,'Total Assets (Lakhs)')),'right'),field('Assets < 1 year (lakhs)',190,(d,r)=>money(value(d,r,'Assets < 1 Year (Lakhs)')),'right'),field('Assets > 1 year (lakhs)',190,(d,r)=>money(value(d,r,'Assets > 1 Year (Lakhs)')),'right'),field('Live accounts',202,(d,r)=>value(d,r,'Live Accounts'),'right')];
+      return [item,...['0-1m','1m-3m','3m-6m','6m-12m','12m-24m','>24m','Total Assets'].map(name=>field(name+' (lakhs)',116,(d,r)=>money(value(d,r,name+' (Lakhs)')),'right'))];
+    }
     const scheme=(d,r)=>get(d,r,'Scheme Name','SCHEME','PRODNAME')||get(d,r,'Scheme Code','PRODCODE')||'—';
     const schemeFolio=(d,r)=>scheme(d,r)+'\nFolio: '+(get(d,r,'Folio Number','FOLIO_NO')||'—');
     const amount=(d,r)=>money(get(d,r,'Amount'));
@@ -66,23 +73,24 @@ window.RTAPdf = async function (report) {
   }
   begin();
   paragraph(report.title,{size:30,bold:true,color:colors.navy,gap:8});
-  paragraph('Investor / family: '+report.scope,{size:19,gap:3});
+  paragraph((report.statementLabel?'Scope: ':'Investor / family: ')+report.scope,{size:19,gap:3});
   paragraph('Statement period: '+report.period,{size:19,gap:12});
   if(report.summary?.length){
-    ensure(60);ctx.fillStyle='#f4f7fc';ctx.fillRect(left,y-18,width,36);ctx.fillStyle=colors.blue;font(20,true);ctx.fillText('PORTFOLIO OVERVIEW',left+12,y+6);y+=44;
+    ensure(60);ctx.fillStyle='#f4f7fc';ctx.fillRect(left,y-18,width,36);ctx.fillStyle=colors.blue;font(20,true);ctx.fillText(report.statementLabel?'AUM SUMMARY':'PORTFOLIO OVERVIEW',left+12,y+6);y+=44;
     for(const summary of report.summary)paragraph(summary,{size:21,bold:true,color:colors.blue,gap:2});
     y+=12;
   }
   if(report.blocks.some(b=>b.data.category==='holdings'))paragraph('Valuation reflects the imported snapshot; the period filter does not reconstruct historical holdings.',{size:17,color:colors.muted,gap:8});
   if(report.excluded)paragraph(report.excluded+' undated record(s) excluded by the selected period.',{size:17,color:colors.muted,gap:8});
   const labels={transactions:['Amount','Transaction amount total (as supplied)'],holdings:['Current Value','Holdings value total'],sips:['SIP Amount','Plan amount total'],brokerage:['Brokerage Amount','Brokerage total']};
+  let currentWbr3Section='';
   const displayBlocks=report.blocks.flatMap(block=>{
     if(block.data.category!=='transactions')return [block];
     const groups=new Map();for(const row of block.data.records){const scheme=get(block.data,row,'Scheme Name')||get(block.data,row,'Scheme Code')||'Scheme not provided',folio=get(block.data,row,'Folio Number')||'—',key=JSON.stringify([scheme,folio]);if(!groups.has(key))groups.set(key,{scheme,folio,rows:[]});groups.get(key).rows.push(row);}
     return [...groups.values()].map(group=>({...block,schemeContext:group.scheme+' | Folio: '+group.folio,data:{...block.data,records:group.rows}}));
   });
   for(const block of displayBlocks){
-    const d=block.data,columns=layout(d.category);y+=14;
+    const d=block.data;currentWbr3Section=d.section||'';const columns=layout(d.category);y+=14;
     const first=d.records[0];
     const firstLines=first?Math.max(...columns.map(c=>wrap(c.value(d,first),c.w-24,18).length)):1;
     const titleHeight=wrap(block.investor||String(block.title||'').split(' | ')[0],width,23,true).length*32;
@@ -114,7 +122,7 @@ window.RTAPdf = async function (report) {
   sheets.push(canvas);
   sheets.forEach((sheet,index)=>{
     const c=sheet.getContext('2d');c.strokeStyle=colors.gold;c.lineWidth=2;c.beginPath();c.moveTo(left,1650);c.lineTo(left+width,1650);c.stroke();
-    c.fillStyle=colors.muted;c.font='16px Arial, sans-serif';c.fillText('Banisatya Wealth Pvt Ltd | Private & confidential | All amounts in INR',left,1684);c.textAlign='right';c.fillText('Page '+(index+1)+' of '+sheets.length,left+width,1684);c.textAlign='left';c.font='14px Arial, sans-serif';c.fillText('Distributor-prepared from imported records. Reconcile with statements issued by the relevant AMC / RTA.',left,1714);
+    c.fillStyle=colors.muted;c.font='16px Arial, sans-serif';c.fillText('Banisatya Wealth Pvt Ltd | Private & confidential | All amounts in '+(report.unit||'INR'),left,1684);c.textAlign='right';c.fillText('Page '+(index+1)+' of '+sheets.length,left+width,1684);c.textAlign='left';c.font='14px Arial, sans-serif';c.fillText('Distributor-prepared from imported records. Reconcile with statements issued by the relevant AMC / RTA.',left,1714);
     pages.push(Uint8Array.from(atob(sheet.toDataURL('image/jpeg',0.94).split(',')[1]),char=>char.charCodeAt(0)));
   });
   const chunks=[],offsets=[0];let position=0;
@@ -135,4 +143,3 @@ window.RTAPdf = async function (report) {
   append('trailer\n<< /Size '+offsets.length+' /Root 1 0 R >>\nstartxref\n'+xref+'\n%%EOF');
   const result=new Uint8Array(position);let at=0;chunks.forEach(c=>{result.set(c,at);at+=c.length;});return result;
 };
-
