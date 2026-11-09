@@ -9,7 +9,7 @@ const RTA=require('./rta-core.js');
 const scrypt=promisify(crypto.scrypt);
 const hash=x=>crypto.createHash('sha256').update(x).digest('hex');
 const random=()=>crypto.randomBytes(32).toString('base64url');
-const codes={clients:['EXCEL_CLIENTS','WBR9','MFSD211','MFSD311'],transactions:['EXCEL_TX','WBR2','WBR2A','MFSD201','MFSD307'],holdings:['EXCEL_AUM','WBR22','MFSD203','MFSD310'],sips:['WBR49','MFSD243','MFSD313','MFSD230'],brokerage:['WBR6','WBR77','MFSD205','MFSD208']};
+const codes={clients:['EXCEL_CLIENTS','WBR9','MFSD211','MFSD311'],transactions:['EXCEL_TX','WBR2','WBR2A','MFSD201','MFSD307'],holdings:['EXCEL_AUM','WBR3','WBR22','MFSD203','MFSD310'],sips:['WBR49','MFSD243','MFSD313','MFSD230'],brokerage:['WBR6','WBR77','MFSD205','MFSD208']};
 const categories=Object.fromEntries(Object.entries(codes).flatMap(([category,list])=>list.map(code=>[code,category])));
 function fail(status,message){const e=new Error(message);e.status=status;throw e;}
 function email(value){const s=String(value||'').trim().toLowerCase();if(s.length>254||!/^\S+@\S+\.\S+$/.test(s))fail(400,'Enter a valid email address.');return s;}
@@ -60,7 +60,8 @@ async function createPortal(options={}){
   });
   res.setHeader('Set-Cookie',`${cookieName}=${token}; Path=/; HttpOnly; SameSite=Strict; Max-Age=28800${production?'; Secure':''}`);return csrf;
  }
- const staticFiles=new Set(['excel-import.js','zip-reader.min.js','zip-import.js','banisatya-logo.svg','index.html','styles.css','app.js','rta-core.js','rta-portal.js','rta-pdf.js','portal-api.js','account-ui.js','login.js','setup.html','setup.js','employee-login.html','employee-login.js','distributor-login.html','distributor-login.js']);
+ const staticFiles=new Set(['wbr3-core.js','wbr3-ui.js','excel-import.js','zip-reader.min.js','zip-import.js','banisatya-logo.svg','index.html','styles.css','app.js','rta-core.js','rta-portal.js','rta-pdf.js','portal-api.js','account-ui.js','login.js','setup.html','setup.js','employee-login.html','employee-login.js','distributor-login.html','distributor-login.js']);
+ const pdfAssets={'pdfjs.mjs':path.join(__dirname,'node_modules/pdfjs-dist/build/pdf.mjs'),'pdf.worker.mjs':path.join(__dirname,'node_modules/pdfjs-dist/build/pdf.worker.mjs')};
  const server=http.createServer(async(req,res)=>{
    res.setHeader('X-Content-Type-Options','nosniff');res.setHeader('Referrer-Policy','same-origin');res.setHeader('X-Frame-Options','DENY');
    res.setHeader('Content-Security-Policy',"default-src 'self'; script-src 'self' https://cdn.sheetjs.com; style-src 'self' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; form-action 'self'");
@@ -70,8 +71,8 @@ async function createPortal(options={}){
     const url=new URL(req.url,'http://localhost');const route=url.pathname;
     if(!route.startsWith('/api/')){
       if(!['GET','HEAD'].includes(req.method))fail(405,'Method not allowed.');
-      const file=route==='/'?'index.html':route.slice(1);if(!staticFiles.has(file))fail(404,'Not found.');
-      res.setHeader('Cache-Control','no-store');res.setHeader('Content-Type',file.endsWith('.svg')?'image/svg+xml':file.endsWith('.js')?'text/javascript; charset=utf-8':file.endsWith('.css')?'text/css; charset=utf-8':'text/html; charset=utf-8');res.end(req.method==='HEAD'?undefined:fs.readFileSync(path.join(__dirname,file)));return;
+      const file=route==='/'?'index.html':route.slice(1);if(!staticFiles.has(file)&&!Object.hasOwn(pdfAssets,file))fail(404,'Not found.');
+      res.setHeader('Cache-Control','no-store');res.setHeader('Content-Type',file.endsWith('.svg')?'image/svg+xml':/\.m?js$/.test(file)?'text/javascript; charset=utf-8':file.endsWith('.css')?'text/css; charset=utf-8':'text/html; charset=utf-8');res.end(req.method==='HEAD'?undefined:fs.readFileSync(pdfAssets[file]||path.join(__dirname,file)));return;
     }
     // Host health probes must not keep a free database awake. Startup verifies DB access.
     if(route==='/api/health'&&req.method==='GET'){send(200,{ok:true});return;}
@@ -174,4 +175,3 @@ if(require.main===module){(async()=>{
 })().catch(()=>{console.error('Portal startup failed. Check database connection and configuration.');process.exitCode=1;});
 }
 module.exports={createPortal,passwordHash};
-
