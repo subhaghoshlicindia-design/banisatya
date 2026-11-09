@@ -60,7 +60,7 @@ async function createPortal(options={}){
   });
   res.setHeader('Set-Cookie',`${cookieName}=${token}; Path=/; HttpOnly; SameSite=Strict; Max-Age=28800${production?'; Secure':''}`);return csrf;
  }
- const staticFiles=new Set(['wbr3-core.js','wbr3-ui.js','excel-import.js','zip-reader.min.js','zip-import.js','banisatya-logo.svg','index.html','styles.css','app.js','rta-core.js','rta-portal.js','rta-pdf.js','portal-api.js','account-ui.js','login.js','setup.html','setup.js','employee-login.html','employee-login.js','distributor-login.html','distributor-login.js']);
+ const staticFiles=new Set(['sheetjs.min.js','wbr3-core.js','wbr3-ui.js','excel-import.js','zip-reader.min.js','zip-import.js','banisatya-logo.svg','index.html','styles.css','app.js','rta-core.js','rta-portal.js','rta-pdf.js','portal-api.js','account-ui.js','login.js','setup.html','setup.js','employee-login.html','employee-login.js','distributor-login.html','distributor-login.js']);
  const pdfAssets={'pdfjs.mjs':path.join(__dirname,'node_modules/pdfjs-dist/build/pdf.mjs'),'pdf.worker.mjs':path.join(__dirname,'node_modules/pdfjs-dist/build/pdf.worker.mjs')};
  const server=http.createServer(async(req,res)=>{
    res.setHeader('X-Content-Type-Options','nosniff');res.setHeader('Referrer-Policy','same-origin');res.setHeader('X-Frame-Options','DENY');

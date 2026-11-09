@@ -27,7 +27,10 @@
   let report=null;
   function families(){return structuredClone(Portal.state.families);}
   function entries(){return Object.entries(datasets).filter(([code])=>code!=='WBR3').map(([sourceCode,data])=>({sourceCode,data:RTA.normalize({...data,category:sourceCategory(sourceCode),provider:RTA.providerFor(sourceCode)})}));}
+  let catalogueInputs=[],catalogueCache=null;
   function catalogue(){
+    const inputs=Object.entries(datasets);
+    if(catalogueCache&&inputs.length===catalogueInputs.length&&inputs.every(([code,data],i)=>code===catalogueInputs[i][0]&&data===catalogueInputs[i][1]))return catalogueCache;
     const list=entries(); const links=new Map(); const people=new Map();
     const val=(d,r,n)=>String(RTA.value(d,r,n)||'').trim();
     const folio=(d,r)=>JSON.stringify([d.provider,val(d,r,'AMC').toUpperCase(),val(d,r,'Folio Number').toUpperCase()]);
@@ -39,13 +42,13 @@
       if(!people.has(key))people.set(key,{key,label:(name||'Investor')+' - '+(pan||(d.provider==='Excel'&&val(d,r,'Investor Group Code')?'Group '+val(d,r,'Investor Group Code'):val(d,r,'Folio Number'))),name:name||'Investor'});
       else if(name && people.get(key).name==='Investor') people.set(key,{key,label:name+' - '+(pan||(d.provider==='Excel'&&val(d,r,'Investor Group Code')?'Group '+val(d,r,'Investor Group Code'):val(d,r,'Folio Number'))),name});
     }));
-    return {people:Array.from(people.values()).sort((a,b)=>a.label.localeCompare(b.label)),identity,list};
+    catalogueInputs=inputs;catalogueCache={people:Array.from(people.values()).sort((a,b)=>a.label.localeCompare(b.label)),identity,list};return catalogueCache;
   }
   employeeAllocation=()=>{const values=new Map();categoryEntries('holdings').forEach(({data})=>data.records.forEach(r=>{const name=valueFor(r,data.headers,columnAliases.scheme),amount=parseAmount(valueFor(r,data.headers,columnAliases.currentValue));if(name&&amount>0)values.set(name,(values.get(name)||0)+amount);}));return Array.from(values,([name,value])=>({name,value})).sort((a,b)=>b.value-a.value);};
   employeeClientCount=()=>String(catalogue().people.length);
   // Keep the existing dashboard client chart aligned with PAN/folio identification.
   statementClients=()=>catalogue().people.map(p=>({...p,folios:[]}));
-  clientIdentity=(row,data)=>catalogue().identity(RTA.normalize({...data,provider:data.provider||RTA.providerFor(data.sourceCode||'')}),RTA.normalize({...data,records:[row]}).records[0]);
+  clientIdentity=(row,data)=>{const one=RTA.normalize({...data,records:[row],provider:data.provider||RTA.providerFor(data.sourceCode||'')});return catalogue().identity(one,one.records[0]);};
   function invalidate(){ report=null; $('rta-download').disabled=true; $('rta-preview').innerHTML=''; $('rta-status').textContent='Generate a report to use the current selection.'; }
   function refresh(){
     const previous=$('rta-person').value, cat=catalogue(), saved=families();

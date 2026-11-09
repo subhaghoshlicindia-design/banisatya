@@ -274,9 +274,14 @@ function readDbf(buffer) {
   return { headers, records };
 }
 
+const unlockedArchives=new WeakMap();
 async function readStatement(file, sourceCode, archivePassword='') {
   if (file.size > MAX_FILE_SIZE) throw new Error("The file is larger than 10 MB. Export a smaller statement and try again.");
   const extension = file.name.split(".").pop().toLowerCase();
+  if(extension==='xlsx'||extension==='xls'){
+    try{return await ExcelImport.read(file,{code:sourceCode,category:SOURCES[sourceCode]?.category,RTA,XLSX:window.XLSX});}
+    catch(error){if(error.needsMapping&&ExcelImport.openFile){await ExcelImport.openFile(file,sourceCode);throw Error(error.message+' Continue in the Excel column mapping section opened above.');}throw error;}
+  }
   if(sourceCode==='WBR3'&&extension!=='pdf'&&extension!=='zip')throw new Error('Choose the original CAMS WBR3 PDF or its ZIP. WBR3 summary tables use a different layout from investor holdings feeds.');
   if(extension==='pdf'){
     if(sourceCode!=='WBR3')throw new Error('For CAMS WBR3 Sales and AUM PDFs, select WBR3 - Sales and AUM summary. Other reports need DBF, Excel or CSV data.');
@@ -284,25 +289,19 @@ async function readStatement(file, sourceCode, archivePassword='') {
   }
   if(extension==='zip'){
     const passwordField=document.getElementById('zip-password');
-    const password=passwordField.value;
+    const password=passwordField.value||archivePassword;
     let extracted;
-    try{extracted=await RTAZip.extract(file,password,sourceCode);}finally{passwordField.value='';}
-    const data=await readStatement(extracted,sourceCode,password);
+    try{extracted=unlockedArchives.get(file)||await RTAZip.extract(file,password,sourceCode);unlockedArchives.set(file,extracted);}finally{passwordField.value='';}
+    const detected=sourceCodeFromFilename(extracted.name);
+    const data=await readStatement(extracted,detected||sourceCode,password);
     // Validate the exact DBF layout before presenting a preview or sending any data.
-    RTA.merge(datasets,data,sourceCode);
+    RTA.merge(datasets,data,data.sourceCode||detected||sourceCode);
 
     return {...data,filename:file.name+' / '+extracted.name};
   }
   let table;
   if (extension === "dbf") {
     table = readDbf(await file.arrayBuffer());
-  } else if (extension === "xlsx" || extension === "xls") {
-    if (!window.XLSX) throw new Error("Excel support could not load. Check your internet connection, or save the spreadsheet as CSV and import it.");
-    const workbook = window.XLSX.read(await file.arrayBuffer(), { type: "array" });
-    const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
-    if (!firstSheet) throw new Error("The Excel workbook has no worksheets.");
-    const rows = window.XLSX.utils.sheet_to_json(firstSheet, { header: 1, raw: false, defval: "" });
-    table = extractTable(rows, sourceCode);
   } else if (extension === "csv" || extension === "txt") {
     const text = await file.text();
     const rows = parseDelimited(text, detectDelimiter(text));
@@ -702,12 +701,14 @@ bulkInput.addEventListener("change", async () => {
   try {
     if (activeRole !== "distributor") throw new Error("Only distributors can import data.");
     const uploadFiles = [];
+    const batchPassword=document.getElementById('zip-password').value;
     let replacements = { ...datasets };
     for (const file of files) {
       const sourceCode = sourceCodeFromFilename(file.name);
-      const data = await readStatement(file, sourceCode);
-      uploadFiles.push({code: sourceCode, data});
-      replacements = RTA.merge(replacements, data, sourceCode).datasets;
+      const data = await readStatement(file, sourceCode,batchPassword),code=data.sourceCode||sourceCode;
+      if(uploadFiles.some(f=>f.code===code))throw Error('More than one selected file resolves to '+code+'. Upload these files separately so one snapshot cannot replace another in the same batch.');
+      uploadFiles.push({code, data});
+      replacements = RTA.merge(replacements, data, code).datasets;
     }
 
     const codes = Object.keys(replacements).sort();
@@ -735,6 +736,7 @@ bulkInput.addEventListener("change", async () => {
   } catch (error) {
     setImportStatus(`Bulk upload failed. Existing data was preserved. ${error.message}`, true);
   } finally {
+    document.getElementById('zip-password').value='';
     bulkButton.disabled = false;
     document.querySelector("#import-cas").disabled = false;
     bulkInput.value = "";
@@ -748,6 +750,7 @@ fileInput.addEventListener('change',()=>{
  document.getElementById('selected-upload-file').textContent=file?`${file.name} (${(file.size/1024/1024).toFixed(2)} MB)`:'No file selected.';
  if(file&&/R2\.(zip|dbf)$/i.test(file.name))importType.value='WBR2';
  if(file&&/R3\.(zip|pdf)$/i.test(file.name))importType.value='WBR3';
+ if(file){const detected=sourceCodeFromFilename(file.name);if(detected)importType.value=detected;}
  setImportStatus(file?'File selected. Enter the ZIP password if required, then click Upload & save to server. Preview is optional.':'Choose a report file to begin.');
 });
 importType.addEventListener('change',resetUploadPreview);
@@ -767,7 +770,8 @@ async function prepareUploadPreview(){
  setImportStatus('Reading and validating the report in your browser…');
  try{
   if(activeRole!=='distributor')throw Error('Only distributors can import data.');
-  const sourceCode=importType.value,data=await readStatement(file,sourceCode);
+  const data=await readStatement(file,importType.value),sourceCode=data.sourceCode||importType.value;
+  importType.value=sourceCode;
   const check=RTA.merge(datasets,data,sourceCode);
   pendingUpload={sourceCode,data};
   uploadPreview.innerHTML=`<h4>Ready to upload: ${escapeHTML(sourceCode)}</h4><p>${escapeHTML(data.filename)}</p><p>${data.records.length} source rows · ${data.headers.length} columns · ${check.data.importSummary.duplicates} identical duplicates will be skipped.</p><details><summary>Review columns</summary><p>${data.headers.map(escapeHTML).join(', ')}</p></details><p>Preview only: no data saved yet. Click Upload &amp; save to server to make it available for employee reports.</p>`;
@@ -785,7 +789,7 @@ uploadSave.addEventListener('click',async()=>{
  if(uploadRead.disabled)return;
  if(!pendingUpload)await prepareUploadPreview();
  if(!pendingUpload)return;
- const {sourceCode,data}=pendingUpload;
+ const {sourceCode,data}=pendingUpload,selectedFile=fileInput.files[0];
  uploadSave.disabled=true;uploadRead.disabled=true;fileInput.disabled=true;importType.disabled=true;
  setImportStatus('Uploading and saving to the shared server. Please keep this page open…');
  try{
@@ -795,6 +799,7 @@ uploadSave.addEventListener('click',async()=>{
   showAllRecords=false;searchInput.value='';renderRecords();renderReport();refreshStatementClientList();renderEmployeeDashboard();
   document.querySelector('#last-updated').textContent=`Saved ${new Date(nextData.importedAt).toLocaleString()}`;
   resetUploadPreview();fileInput.value='';document.getElementById('selected-upload-file').textContent='Upload complete. Choose another file to continue.';
+  unlockedArchives.delete(selectedFile);uploadSave.disabled=true;
   setImportStatus(`Saved to server: ${nextData.records.length} ${sourceCode} rows. ${nextData.importSummary.duplicates} duplicates skipped. Employees with permission can now generate investor and family reports from this data.`);
   if(sourceCode==='WBR3')setImportStatus(`Saved WBR3 AUM summary to the shared server. Open Reports → CAMS WBR3 Sales and AUM summary to view or download its tables. Investor and family holdings are unchanged.`);
   showToast('Report saved to the shared server.');
@@ -879,6 +884,8 @@ function reportMetric(type, data) {
 }
 
 function renderReport() {
+  const legacyPreview=document.querySelector('#report-preview');
+  if(document.querySelector('#reports-section').hidden||document.querySelector('.other-reports')?.hidden){legacyPreview.textContent='';return;}
   const type = document.querySelector("#report-type").value;
   const preview = document.querySelector("#report-preview");
   const sources = reportRows(type);
@@ -1318,6 +1325,7 @@ renderRecords();
 renderReport();
 refreshStatementClientList();
 window.addEventListener("portal-state", () => {
+  resetUploadPreview();
   Object.keys(datasets).forEach(code => delete datasets[code]);
   restoreDatasets();renderRecords();renderReport();refreshStatementClientList();renderEmployeeDashboard();
 });

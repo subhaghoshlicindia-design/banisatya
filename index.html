@@ -231,7 +231,7 @@
 
           <section class="middle-grid">
             <article class="panel import-panel">
-              <div class="panel-heading"><div><h2>Import distributor files</h2><p>Choose the CAMS or KFintech report code, then upload its ZIP (including password-protected), DBF, CSV / TXT, or Excel file.</p></div></div>
+              <div class="panel-heading"><div><h2>Import distributor files</h2><p>Upload ZIP, Excel, DBF or CSV reports here. AUM List and Transactions Report Excel layouts are detected automatically, including inside ZIPs. For other layouts, choose the report code or use Excel column mapping.</p></div></div>
               <div class="import-controls">
                 <label for="import-type">CAMS / KFintech report</label>
                 <select id="import-type">
@@ -258,11 +258,12 @@
                     <option value="WBR77">WBR77</option>
                   </optgroup>
                 </select>
-                <span class="import-formats">ZIP (including password-protected), DBF, CSV / TXT, or Excel</span>
+                <span class="import-formats">ZIP, Excel (.xlsx / .xls), DBF, CSV / TXT, or WBR3 PDF</span>
                 <button class="text-button" id="download-template" type="button">Download CSV template <span>↓</span></button>
               </div>
               <div class="import-help"><div><button class="primary-button" id="import-wbr3" type="button">Import CAMS WBR3 Sales and AUM</button><p>Upload your original WBR3 PDF or password-protected ZIP. Imports Section 1 scheme assets, Section 2d scheme-type aging and Section 2e segment aging. Amounts remain in lakhs of INR, with printed totals checked before saving.</p><p>This summary has no investor folios. View and download it under Reports using AUM permissions. Investor and family holdings continue to use folio-level AUM data.</p></div></div>
               <div class="import-help"><div><button class="primary-button" id="import-wbr9" type="button">Import CAMS WBR9 investor details</button><p>Import investor names, PAN, folios and contact details into your shared client master. Request <strong>WBR9 - Investor Static Details</strong> from CAMS in <strong>DBF, Excel or CSV</strong> format. Password-protected ZIPs containing a data file are supported. WBR9 requires a data file; use the separate WBR3 option for Sales and AUM PDFs.</p><p>Client details are matched by CAMS, AMC and folio. Identical records are skipped; changed client details update the saved record. Employees need Client master access to view these details in investor and family reports. WBR9 does not supply transactions or AUM.</p></div></div>
+              <button class="primary-button" type="button" id="import-excel">Excel import / column mapping</button>
               <div class="upload-workflow"><h3>Upload reports to your shared server</h3><p>1. Choose your report file. 2. Enter the ZIP password if required. 3. Click Upload &amp; save to server. Preview is optional.</p><label class="upload-file-label" for="data-file">Report file<input id="data-file" type="file" accept=".zip,.pdf,.csv,.txt,.xlsx,.xls,.dbf"></label><p id="selected-upload-file" role="status">No file selected.</p><label class="zip-password-label" for="zip-password">ZIP / PDF password (only for encrypted mailbacks)<input id="zip-password" type="password" autocomplete="off" placeholder="Enter the password supplied for your CAMS ZIP"><small>Used only in this browser to unlock the ZIP or PDF. Not saved or sent to the server.</small></label><button class="primary-button" type="button" id="import-selected-file">Preview selected file</button> <button class="primary-button" type="button" id="upload-save-server" disabled>Upload &amp; save to server</button><div id="upload-preview" hidden></div><p>Saved reports are available to employees on other devices according to their report permissions.</p></div><p id="import-status" class="import-status" role="status">No files imported yet. Choose a WBR code and upload the matching file.</p>
               <div class="import-help">
                 <span>Imports merge history and skip identical records. AUM replaces that RTA snapshot. Changing brokerage layouts replaces that RTA brokerage set to avoid counting summary and detail twice. Upload CAMS ZIP files directly. Files ending in R3.zip or R3.pdf select WBR3 Sales and AUM. Files ending in R2.zip or R2.dbf are recognized as WBR2 transactions. Select WBR2 above for other filenames. You can review the extracted file and row count before saving. Bulk files must identify their report code.</span>
@@ -347,7 +348,7 @@
       </section>
     </main>
     <div id="toast" class="toast" role="status" aria-live="polite"></div>
-    <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
+    <script src="sheetjs.min.js"></script>
     <script src="zip-reader.min.js"></script><script src="zip-import.js"></script><script src="portal-api.js"></script>
   </body>
 </html>

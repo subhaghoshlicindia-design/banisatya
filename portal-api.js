@@ -4,14 +4,21 @@ Portal.request=async function(url,options={}){
   Portal.busy++;
   try{
     const response=await fetch(url,{credentials:'same-origin',...options,headers:{'Content-Type':'application/json',...(Portal.csrf?{'X-CSRF-Token':Portal.csrf}:{}),...options.headers}});
+    const type=response.headers.get('content-type')||'';
+    if(!type.includes('application/json'))throw Object.assign(new Error('The shared server could not respond. Wait a moment, refresh the portal and try again.'),{status:response.status});
     const result=await response.json();
-    if(!response.ok){if(response.status===401&&Portal.user){window.location.assign('/');}throw new Error(result.error||'Request failed.');}
+    if(!response.ok){if(response.status===401&&Portal.user){window.location.assign('/');}throw Object.assign(new Error(result.error||'Request failed.'),{status:response.status});}
     return result;
   }finally{Portal.busy--;}
 };
 Portal.importFiles=async files=>{
-  const result=await Portal.request('/api/imports',{method:'POST',body:JSON.stringify({files,revision:Portal.state.revision})});
-  Portal.state=result;return result;
+  try{
+    const result=await Portal.request('/api/imports',{method:'POST',body:JSON.stringify({files,revision:Portal.state.revision})});
+    Portal.state=result;return result;
+  }catch(error){
+    if(error.status===409){Portal.state=await Portal.request('/api/state');window.dispatchEvent(new Event('portal-state'));throw Error('Shared data changed while you were preparing this upload. The latest data is now loaded. Review the file and click Upload again.');}
+    throw error;
+  }
 };
 Portal.saveFamilies=async families=>{
   const result=await Portal.request('/api/families',{method:'PUT',body:JSON.stringify({families,revision:Portal.state.revision})});Portal.state=result;return result;
