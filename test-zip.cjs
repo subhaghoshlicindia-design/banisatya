@@ -31,4 +31,5 @@ test('WBR9 accepts encrypted data archives and rejects wrong report selection an
  assert.equal((await extract(file,'synthetic-wbr9-password','WBR9')).name,'CAMS_WBR9.csv');
  const pdf=await archive(['exampleR3.pdf'],{password:'synthetic-test',zipCrypto:true});
  await assert.rejects(()=>extract(pdf,'','WBR9'),/PDF statement.*WBR9.*DBF, Excel or CSV.*No data was saved/);
+ assert.equal((await extract(pdf,'synthetic-test','WBR3')).name,'exampleR3.pdf');
 });
