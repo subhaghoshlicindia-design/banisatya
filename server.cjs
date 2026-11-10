@@ -69,7 +69,7 @@ async function createPortal(options={}){
   });
   res.setHeader('Set-Cookie',`${cookieName}=${token}; Path=/; HttpOnly; SameSite=Strict; Max-Age=28800${production?'; Secure':''}`);return csrf;
  }
- const staticFiles=new Set(['client-master-core.js','client-master-ui.js','sheetjs.min.js','wbr3-core.js','wbr3-ui.js','excel-import.js','zip-reader.min.js','zip-import.js','banisatya-logo.svg','index.html','styles.css','app.js','rta-core.js','rta-portal.js','rta-pdf.js','portal-api.js','account-ui.js','login.js','setup.html','setup.js','employee-login.html','employee-login.js','distributor-login.html','distributor-login.js']);
+ const staticFiles=new Set(['corporate.css','assets/fonts/plus-jakarta-sans-latin.woff2','assets/fonts/OFL.txt','client-master-core.js','client-master-ui.js','sheetjs.min.js','wbr3-core.js','wbr3-ui.js','excel-import.js','zip-reader.min.js','zip-import.js','banisatya-logo.svg','index.html','styles.css','app.js','rta-core.js','rta-portal.js','rta-pdf.js','portal-api.js','account-ui.js','login.js','setup.html','setup.js','employee-login.html','employee-login.js','distributor-login.html','distributor-login.js']);
  const pdfAssets={'pdfjs.mjs':path.join(__dirname,'node_modules/pdfjs-dist/build/pdf.mjs'),'pdf.worker.mjs':path.join(__dirname,'node_modules/pdfjs-dist/build/pdf.worker.mjs')};
  const server=http.createServer(async(req,res)=>{
    res.setHeader('X-Content-Type-Options','nosniff');res.setHeader('Referrer-Policy','same-origin');res.setHeader('X-Frame-Options','DENY');
@@ -81,7 +81,7 @@ async function createPortal(options={}){
     if(!route.startsWith('/api/')){
       if(!['GET','HEAD'].includes(req.method))fail(405,'Method not allowed.');
       const file=route==='/'?'index.html':route.slice(1);if(!staticFiles.has(file)&&!Object.hasOwn(pdfAssets,file))fail(404,'Not found.');
-      res.setHeader('Cache-Control','no-store');res.setHeader('Content-Type',file.endsWith('.svg')?'image/svg+xml':/\.m?js$/.test(file)?'text/javascript; charset=utf-8':file.endsWith('.css')?'text/css; charset=utf-8':'text/html; charset=utf-8');res.end(req.method==='HEAD'?undefined:fs.readFileSync(pdfAssets[file]||path.join(__dirname,file)));return;
+      res.setHeader('Cache-Control','no-store');res.setHeader('Content-Type',file.endsWith('.woff2')?'font/woff2':file.endsWith('.txt')?'text/plain; charset=utf-8':file.endsWith('.svg')?'image/svg+xml':/\.m?js$/.test(file)?'text/javascript; charset=utf-8':file.endsWith('.css')?'text/css; charset=utf-8':'text/html; charset=utf-8');res.end(req.method==='HEAD'?undefined:fs.readFileSync(pdfAssets[file]||path.join(__dirname,file)));return;
     }
     // Host health probes must not keep a free database awake. Startup verifies DB access.
     if(route==='/api/health'&&req.method==='GET'){send(200,{ok:true});return;}
