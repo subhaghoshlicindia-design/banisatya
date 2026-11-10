@@ -57,3 +57,10 @@ test('Investor catalogue is reused until imported datasets change',()=>{
  const first=context.catalogue();assert.equal(context.catalogue(),first);assert.equal(normalized,1);
  context.datasets.WBR9={...data,records:[['DEMO','0001','UPDATED Investor']]};assert.notEqual(context.catalogue(),first);assert.equal(normalized,2);assert.match(context.catalogue().people[0].label,/UPDATED Investor/);
 });
+
+test('PAN-based investor catalogue groups different AMCs and folios without merging different PANs',()=>{
+ const source=fs.readFileSync('rta-portal.js','utf8'),headers=['Investor Name','PAN','AMC','Folio Number','Scheme Name','Current Value'];
+ const data={headers,records:[['DEMO','ABCDE1234F','AMC ONE','001','Fund One','100'],['demo','ABCDE1234F','AMC TWO','002','Fund Two','200'],['DEMO','FGHIJ5678K','AMC ONE','003','Fund Three','300']],category:'holdings',investorMatching:'pan'};
+ const context={datasets:{EXCEL_AUM:data},sourceCategory:()=> 'holdings',RTA:R};vm.createContext(context);vm.runInContext(source.slice(source.indexOf('  function entries()'),source.indexOf('  employeeAllocation=')),context);
+ const cat=context.catalogue(),d=cat.list[0].data;assert.equal(cat.people.length,2);assert.equal(cat.identity(d,d.records[0]),cat.identity(d,d.records[1]));assert.notEqual(cat.identity(d,d.records[0]),cat.identity(d,d.records[2]));assert.equal(d.records.length,3);
+});

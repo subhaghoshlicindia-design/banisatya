@@ -21,3 +21,13 @@ test('Excel aliases, serial dates, invalid mappings and invalid calendar dates',
  assert.throws(()=>Excel.build({...options,rows:[headers]}),/No data rows/);
 });
 
+test('PAN-based Excel import requires the real PAN column and validates every investor row',()=>{
+ const headers=['Investor','PAN Number','AMC','Fund','Folio No.','AUM'];const map=Excel.mapping(headers,'holdings',RTA);
+ const options={rows:[headers,['DEMO','abcde1234f','DEMO AMC','DEMO Fund','0001',100],['DEMO','ABCDE1234F','DEMO AMC','OTHER Fund','0002',200]],headerRow:1,category:'holdings',map,filename:'DEMO.xlsx',investorMatching:'pan'};
+ const data=Excel.build(options);assert.equal(map.PAN,1);assert.equal(data.investorMatching,'pan');assert.equal(data.records[0][data.headers.indexOf('PAN')],'ABCDE1234F');assert.equal(RTA.merge({},data,'EXCEL_AUM').data.records.length,2);
+ assert.throws(()=>Excel.build({...options,map:{...map,PAN:-1}}),/requires a PAN column/);
+ assert.throws(()=>Excel.build({...options,rows:[headers,['DEMO','','DEMO AMC','DEMO Fund','0001',100]]}),/Excel row 2.*PAN is required/);
+ assert.throws(()=>Excel.build({...options,rows:[headers,['DEMO','07\/11\/2026','DEMO AMC','DEMO Fund','0001',100]]}),/Invalid PAN format/);
+ assert.throws(()=>RTA.merge({}, {...data,records:data.records.map(r=>r.map((v,i)=>i===data.headers.indexOf('PAN')?'':v))},'EXCEL_AUM'),/valid PAN/);
+ const noPan=Excel.build({...options,investorMatching:'auto',map:{...map,PAN:-1}});assert.equal(noPan.records.length,2);
+});

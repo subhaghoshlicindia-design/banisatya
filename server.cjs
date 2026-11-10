@@ -126,6 +126,7 @@ async function createPortal(options={}){
         for(const file of b.files){const category=categories[file.code],d=file.data;if(!category||!d||!Array.isArray(d.headers)||!Array.isArray(d.records)||d.headers.length>200||d.records.length>100000||!d.headers.length||!d.records.length)fail(400,'Invalid or unsupported report.');
           if(d.headers.some(h=>typeof h!=='string'||h.length>200)||d.records.some(r=>!Array.isArray(r)||r.length!==d.headers.length||r.some(v=>typeof v!=='string'||v.length>10000)))fail(400,'Invalid report cells.');
           const incoming={headers:d.headers,records:d.records,category,sourceCode:file.code,filename:String(d.filename||file.code).slice(0,200),importedAt:new Date().toISOString()};
+          if(d.investorMatching!==undefined)incoming.investorMatching=d.investorMatching;
           let merged;try{merged=RTA.merge(next,incoming,file.code);}catch(e){fail(400,e.message);}next=merged.datasets;summaries.push({code:file.code,...merged.data.importSummary});
         }
         await writeDatasets(u,next);await audit(u,'reports_imported',{summaries});return {...(await state(u.workspace_id)),summaries};

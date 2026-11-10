@@ -5,7 +5,7 @@
   const header = x => norm(x).replace(/[^A-Z0-9]/g, '');
   const fields = {
     'Investor Name': ['INVNAME','INVESTOR','NAME','CLIENTNAME','INVESTORNAME'],
-    PAN: ['PAN','PAN1','PANGNO','PANNO','PAN_NUMBER','ITPANNO'],
+    PAN: ['PAN','PAN1','PANGNO','PANNO','PAN_NUMBER','ITPANNO','INVESTORPAN','FIRSTHOLDERPAN','PRIMARYHOLDERPAN'],
     AMC: ['AMC','AMC_CODE','AMCCODE','FUND','FUNDCODE'],
     'Folio Number': ['FOLIO','FOLIO_NO','FOLIONO','FOLIONUMBER','FOLIOCHK','ACNO','TD_ACNO','ACCOUNTNUMBER'],
     'Scheme Name': ['SCHEME','SCHEMENAME','PRODUCTNAME','PRODNAME','FUNDNAME'],
@@ -99,7 +99,11 @@
     }
     const data=normalize({...incoming,provider:providerFor(code),reportCode:code});
     const get=(r,n)=>value(data,r,n);
+    if(data.investorMatching!==undefined&&!['auto','pan'].includes(data.investorMatching))throw Error('Invalid investor matching option.');
+    if(data.investorMatching==='pan'&&!data.headers.includes('PAN'))throw Error('PAN-based import requires a mapped PAN column.');
     data.records.forEach((r,i)=>{
+      const pan=get(r,'PAN');
+      if((data.provider==='Excel'||data.investorMatching==='pan')&&((pan&&!/^[A-Z]{5}[0-9]{4}[A-Z]$/.test(pan.toUpperCase()))||(!pan&&data.investorMatching==='pan')))throw Error(`Row ${i+2}: a valid PAN is required for PAN-based import; check the PAN column mapping.`);
       if(!get(r,'Folio Number')) throw Error(`Row ${i+2}: Folio Number is required.`);
       if(data.category==='clients' && !get(r,'PAN') && !get(r,'Investor Name')) throw Error(`Row ${i+2}: PAN or investor name is required.`);
       if(data.category!=='clients' && !get(r,'Scheme Code') && !get(r,'Scheme Name')) throw Error(`Row ${i+2}: scheme is required.`);
