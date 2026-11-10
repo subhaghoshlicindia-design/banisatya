@@ -6,6 +6,7 @@ const crypto=require('node:crypto');
 const {promisify}=require('node:util');
 const {openDatabase}=require('./database.cjs');
 const RTA=require('./rta-core.js');
+const ClientMaster=require('./client-master-core.js');
 const scrypt=promisify(crypto.scrypt);
 const hash=x=>crypto.createHash('sha256').update(x).digest('hex');
 const random=()=>crypto.randomBytes(32).toString('base64url');
@@ -30,9 +31,17 @@ async function createPortal(options={}){
  const transaction=fn=>db.transaction(fn);
  async function state(workspace){return transaction(async()=>{
   const row=await statement('SELECT revision FROM workspaces WHERE id=?'+(db.kind==='postgres'?' FOR SHARE':''),workspace);
-  return {revision:row.revision,datasets:Object.fromEntries((await db.all('SELECT code,data FROM datasets WHERE workspace_id=?',workspace)).map(x=>[x.code,JSON.parse(x.data)])),families:Object.fromEntries((await db.all('SELECT id,data FROM families WHERE workspace_id=?',workspace)).map(x=>[x.id,JSON.parse(x.data)]))};
+  const master=await statement('SELECT data FROM client_masters WHERE workspace_id=?',workspace);
+  return {revision:row.revision,datasets:Object.fromEntries((await db.all('SELECT code,data FROM datasets WHERE workspace_id=?',workspace)).map(x=>[x.code,JSON.parse(x.data)])),families:Object.fromEntries((await db.all('SELECT id,data FROM families WHERE workspace_id=?',workspace)).map(x=>[x.id,JSON.parse(x.data)])),master:master?JSON.parse(master.data):ClientMaster.empty()};
  });}
  const defaultPermissions=()=>Object.fromEntries(Object.keys(codes).map(k=>[k,{view:true,download:true}]));
+ function employeeState(result,access){
+  result.permissions=access;result.datasets=Object.fromEntries(Object.entries(result.datasets).filter(([code])=>access[categories[code]]?.view));
+  const full=result.master,list=ClientMaster.entries(result.datasets),base={...full,clients:access.clients.view?full.clients:{}},cat=ClientMaster.catalogue(list,base),known=new Set(cat.people.map(p=>p.key)),visibleSources=new Set(list.flatMap(({data:d})=>d.records.map(r=>ClientMaster.fallback(d,r))));
+  result.master={clientRecords:access.clients.view,clients:Object.fromEntries(Object.entries(full.clients).filter(([pan])=>known.has('pan:'+pan)).map(([pan,p])=>[pan,access.clients.view?p:{pan,name:p.name}])),merges:Object.fromEntries(Object.entries(full.merges).filter(([source])=>visibleSources.has(source))),groups:{}};
+  result.families=Object.fromEntries(Object.entries(result.families).filter(([,f])=>f.members.every(k=>known.has(ClientMaster.resolve(k,full)))));
+  result.master.groups=Object.fromEntries(Object.entries(full.groups).filter(([,g])=>g.clients.every(k=>known.has(ClientMaster.resolve(k,full)))&&g.families.every(id=>Object.hasOwn(result.families,id))));return result;
+ }
  function validatePermissions(value){
   if(!value||typeof value!=='object'||Array.isArray(value)||Object.keys(value).some(k=>!codes[k]))fail(400,'Invalid report permissions.');
   return Object.fromEntries(Object.keys(codes).map(k=>{const p=value[k];if(!p||typeof p.view!=='boolean'||typeof p.download!=='boolean'||(p.download&&!p.view))fail(400,'Download access requires view access.');return [k,{view:p.view,download:p.download}];}));
@@ -60,7 +69,7 @@ async function createPortal(options={}){
   });
   res.setHeader('Set-Cookie',`${cookieName}=${token}; Path=/; HttpOnly; SameSite=Strict; Max-Age=28800${production?'; Secure':''}`);return csrf;
  }
- const staticFiles=new Set(['sheetjs.min.js','wbr3-core.js','wbr3-ui.js','excel-import.js','zip-reader.min.js','zip-import.js','banisatya-logo.svg','index.html','styles.css','app.js','rta-core.js','rta-portal.js','rta-pdf.js','portal-api.js','account-ui.js','login.js','setup.html','setup.js','employee-login.html','employee-login.js','distributor-login.html','distributor-login.js']);
+ const staticFiles=new Set(['client-master-core.js','client-master-ui.js','sheetjs.min.js','wbr3-core.js','wbr3-ui.js','excel-import.js','zip-reader.min.js','zip-import.js','banisatya-logo.svg','index.html','styles.css','app.js','rta-core.js','rta-portal.js','rta-pdf.js','portal-api.js','account-ui.js','login.js','setup.html','setup.js','employee-login.html','employee-login.js','distributor-login.html','distributor-login.js']);
  const pdfAssets={'pdfjs.mjs':path.join(__dirname,'node_modules/pdfjs-dist/build/pdf.mjs'),'pdf.worker.mjs':path.join(__dirname,'node_modules/pdfjs-dist/build/pdf.worker.mjs')};
  const server=http.createServer(async(req,res)=>{
    res.setHeader('X-Content-Type-Options','nosniff');res.setHeader('Referrer-Policy','same-origin');res.setHeader('X-Frame-Options','DENY');
@@ -115,7 +124,7 @@ async function createPortal(options={}){
     if(u.must_change)fail(403,'Change your temporary password before accessing portfolio data.');
     if(route==='/api/state'&&req.method==='GET'){
       if(url.searchParams.has('afterRevision')){const current=await statement('SELECT revision FROM workspaces WHERE id=?',u.workspace_id);if(String(current.revision)===url.searchParams.get('afterRevision')){send(200,{unchanged:true,revision:current.revision});return;}}
-      const result=await state(u.workspace_id);if(u.role==='employee'){result.permissions=await permissions(u);result.datasets=Object.fromEntries(Object.entries(result.datasets).filter(([code])=>result.permissions[categories[code]]?.view));}send(200,result);return;
+      let result=await state(u.workspace_id);if(u.role==='employee')result=employeeState(result,await permissions(u));send(200,result);return;
     }
     if(route==='/api/reports/authorize-download'&&req.method==='POST'){const b=await body(req);if(!Array.isArray(b.categories)||!b.categories.length||b.categories.some(k=>!codes[k]))fail(400,'Choose report categories.');const access=await permissions(u);if(u.role==='employee'&&b.categories.some(k=>!access[k].view||!access[k].download))fail(403,'You do not have download access for this report.');await audit(u,'report_download',{categories:b.categories});send(200,{ok:true});return;}
     if(route==='/api/imports'&&req.method==='POST'){
@@ -129,6 +138,7 @@ async function createPortal(options={}){
           if(d.investorMatching!==undefined)incoming.investorMatching=d.investorMatching;
           let merged;try{merged=RTA.merge(next,incoming,file.code);}catch(e){fail(400,e.message);}next=merged.datasets;summaries.push({code:file.code,...merged.data.importSummary});
         }
+        try{ClientMaster.checkMergeConflicts(ClientMaster.entries(next),(await state(u.workspace_id)).master);}catch(e){fail(400,e.message);}
         await writeDatasets(u,next);await audit(u,'reports_imported',{summaries});return {...(await state(u.workspace_id)),summaries};
       });send(200,result);return;
     }
@@ -136,11 +146,19 @@ async function createPortal(options={}){
       if(u.role!=='distributor')fail(403,'Only distributors can clear data.');const b=await body(req);
       await transaction(async()=>{await revision(u,b.revision);await writeDatasets(u,{});await audit(u,'reports_cleared');});send(200,await state(u.workspace_id));return;
     }
+    if(route==='/api/client-master'&&req.method==='POST'){
+      if(u.role!=='distributor')fail(403,'Only distributors can manage clients and groups.');const b=await body(req);
+      const result=await transaction(async()=>{
+        await revision(u,b.revision);const saved=await state(u.workspace_id);let master;
+        try{master=ClientMaster.update(saved.master,b.action,b.payload||{},saved.datasets,saved.families);}catch(e){fail(400,e.message);}
+        await db.run('INSERT INTO client_masters(workspace_id,data) VALUES(?,?) ON CONFLICT(workspace_id) DO UPDATE SET data=excluded.data',u.workspace_id,JSON.stringify(master));await increment(u);await audit(u,'client_master_updated',{action:b.action});return state(u.workspace_id);
+      });send(200,result);return;
+    }
     if(route==='/api/families'&&req.method==='PUT'){
       if(u.role!=='distributor')fail(403,'Only distributors can manage families.');const b=await body(req);
       if(!b.families||typeof b.families!=='object'||Array.isArray(b.families)||Object.keys(b.families).length>2000)fail(400,'Invalid families.');
       for(const [id,f] of Object.entries(b.families))if(!/^[a-zA-Z0-9-]{1,100}$/.test(id)||!f||typeof f.name!=='string'||!f.name.trim()||f.name.length>80||!Array.isArray(f.members)||!f.members.length||f.members.length>500||f.members.some(m=>typeof m!=='string'||m.length>500||!m.match(/^(pan:|folio:)/)))fail(400,'Invalid family membership.');
-      await transaction(async()=>{await revision(u,b.revision);await db.run('DELETE FROM families WHERE workspace_id=?',u.workspace_id);for(const [id,f] of Object.entries(b.families))await db.run('INSERT INTO families VALUES(?,?,?)',u.workspace_id,id,JSON.stringify({name:f.name.trim(),members:[...new Set(f.members)]}));await increment(u);await audit(u,'families_updated');});send(200,await state(u.workspace_id));return;
+      await transaction(async()=>{await revision(u,b.revision);const saved=await state(u.workspace_id);if(Object.values(saved.master.groups).some(g=>g.families.some(id=>!Object.hasOwn(b.families,id))))fail(409,'A group uses this family. Remove it from the group before deleting the family.');await db.run('DELETE FROM families WHERE workspace_id=?',u.workspace_id);for(const [id,f] of Object.entries(b.families))await db.run('INSERT INTO families VALUES(?,?,?)',u.workspace_id,id,JSON.stringify({name:f.name.trim(),members:[...new Set(f.members)]}));await increment(u);await audit(u,'families_updated');});send(200,await state(u.workspace_id));return;
     }
     if(route==='/api/users'&&req.method==='GET'){
       if(u.role!=='distributor')fail(403,'Distributor access required.');const users=await db.all('SELECT id,email,name,role,active,must_change FROM users WHERE workspace_id=? ORDER BY name',u.workspace_id);for(const user of users)if(user.role==='employee')user.permissions=await permissions(user);send(200,{users});return;

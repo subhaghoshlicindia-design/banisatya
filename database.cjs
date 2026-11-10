@@ -45,6 +45,7 @@ async function openDatabase(options={}){
    CREATE TABLE IF NOT EXISTS sessions(token_hash TEXT PRIMARY KEY, user_id TEXT NOT NULL REFERENCES users(id), csrf TEXT NOT NULL, expires BIGINT NOT NULL);
    CREATE TABLE IF NOT EXISTS datasets(workspace_id INTEGER NOT NULL REFERENCES workspaces(id), code TEXT NOT NULL, data TEXT NOT NULL, PRIMARY KEY(workspace_id,code));
    CREATE TABLE IF NOT EXISTS families(workspace_id INTEGER NOT NULL REFERENCES workspaces(id), id TEXT NOT NULL, data TEXT NOT NULL, PRIMARY KEY(workspace_id,id));
+   CREATE TABLE IF NOT EXISTS client_masters(workspace_id INTEGER PRIMARY KEY REFERENCES workspaces(id), data TEXT NOT NULL);
    CREATE TABLE IF NOT EXISTS audit(id ${identity}, workspace_id INTEGER NOT NULL, user_id TEXT NOT NULL, action TEXT NOT NULL, detail TEXT NOT NULL, created_at TEXT NOT NULL);
    CREATE TABLE IF NOT EXISTS attempts(key TEXT PRIMARY KEY, count INTEGER NOT NULL, until BIGINT NOT NULL);
   `);
@@ -52,4 +53,3 @@ async function openDatabase(options={}){
  return db;
 }
 module.exports={openDatabase,pgSql};
-

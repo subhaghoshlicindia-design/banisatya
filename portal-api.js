@@ -1,5 +1,5 @@
 /* Session cookies stay HttpOnly; only the CSRF token is held in memory. */
-window.Portal={user:null,csrf:null,state:{revision:0,datasets:{},families:{}},busy:0};
+window.Portal={user:null,csrf:null,state:{revision:0,datasets:{},families:{},master:{clients:{},merges:{},groups:{}}},busy:0};
 Portal.request=async function(url,options={}){
   Portal.busy++;
   try{
@@ -23,12 +23,15 @@ Portal.importFiles=async files=>{
 Portal.saveFamilies=async families=>{
   const result=await Portal.request('/api/families',{method:'PUT',body:JSON.stringify({families,revision:Portal.state.revision})});Portal.state=result;return result;
 };
+Portal.updateMaster=async(action,payload)=>{
+  const result=await Portal.request('/api/client-master',{method:'POST',body:JSON.stringify({action,payload,revision:Portal.state.revision})});Portal.state=result;window.dispatchEvent(new Event('portal-state'));return result;
+};
 Portal.clearData=async()=>{const result=await Portal.request('/api/datasets',{method:'DELETE',body:JSON.stringify({revision:Portal.state.revision})});Portal.state=result;return result;};
 Portal.logout=async()=>{try{await Portal.request('/api/logout',{method:'POST',body:'{}'});window.location.assign('/');}catch(e){alert('Sign out failed: '+e.message);}};
 (async()=>{
   try{const me=await Portal.request('/api/me');Portal.user=me.user;Portal.csrf=me.csrf;if(!me.user.mustChangePassword)Portal.state=await Portal.request('/api/state');}
   catch(e){if(e.message!=='Please sign in.')console.warn('Session unavailable:',e.message);}
-  for(const src of ['wbr3-core.js','rta-core.js','app.js','rta-pdf.js','rta-portal.js','account-ui.js','excel-import.js','wbr3-ui.js']){
+  for(const src of ['wbr3-core.js','rta-core.js','client-master-core.js','app.js','rta-pdf.js','rta-portal.js','account-ui.js','client-master-ui.js','excel-import.js','wbr3-ui.js']){
     await new Promise((resolve,reject)=>{const script=document.createElement('script');script.src=src;script.onload=resolve;script.onerror=reject;document.body.append(script);});
   }
   Portal.refresh=async()=>{
